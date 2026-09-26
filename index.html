@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Creator Studio Hub - Mobile Optimized & Auto Sync</title>
+  <title>Creator Studio Hub - Mobile Optimized</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Cliente oficial de Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -27,7 +25,7 @@
     }
   </script>
   <style>
-    /* Estilos personalizados para formato rectangular móvil */
+    /* Estilos para el diseño rectangular compacto en celular */
     @media (max-width: 767px) {
       .mobile-card {
         display: flex;
@@ -59,7 +57,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-24 font-sans antialiased selection:bg-brand-500 selection:text-white">
 
-  <!-- Header Fijo para Móvil -->
+  <!-- Header -->
   <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-900/90 border-b border-slate-800 px-4 py-3">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2">
@@ -72,12 +70,6 @@
       </div>
       
       <div class="flex items-center gap-2">
-        <!-- Indicador de Sincronización -->
-        <div id="sync-status" class="flex items-center gap-1.5 text-[10px] sm:text-xs text-emerald-400 bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-800/80">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="hidden sm:inline">Sincronizado</span>
-        </div>
-
         <div class="bg-slate-800 p-1 rounded-lg flex border border-slate-700">
           <button id="btn-grid" onclick="setViewMode('grid')" class="p-1.5 rounded-md text-slate-400 hover:text-white transition">
             <i data-lucide="layout-grid" class="w-4 h-4"></i>
@@ -97,7 +89,7 @@
   <!-- Contenedor Principal -->
   <main class="max-w-6xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6">
     
-    <!-- BARRA DE PROGRESO GENERAL SUPREMA -->
+    <!-- BARRA DE PROGRESO GENERAL DE TODO EL ESTUDIO -->
     <div class="mb-6 bg-slate-800/90 border border-slate-700/80 p-3.5 sm:p-4 rounded-2xl shadow-xl">
       <div class="flex justify-between items-center mb-1.5">
         <div>
@@ -111,11 +103,11 @@
       </div>
     </div>
 
-    <!-- Contenedor de Tarjetas Rectangulares -->
+    <!-- Contenedor de Tarjetas de Proyectos -->
     <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"></div>
   </main>
 
-  <!-- Ventana Modal Móvil -->
+  <!-- Ventana Modal (Agregar / Editar) -->
   <div id="project-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
       <h2 id="modal-title" class="text-lg sm:text-xl font-bold mb-4 text-white">Nuevo Proyecto</h2>
@@ -152,36 +144,13 @@
   </div>
 
   <script>
-    // Configuración de Supabase conectada a tu proyecto
-    const SUPABASE_URL = "https://uxmvfntyhveyoyirmosu.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_44BcotzPRrb20v7xX4WOHg_SA0W_example"; // Reemplaza con tu llave copiada de Publishable key
-    
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let projects = [];
+    let projects = JSON.parse(localStorage.getItem('juls_creator_projects')) || [];
     let viewMode = localStorage.getItem('juls_creator_view') || 'grid';
 
-    // Cargar datos en tiempo real desde Supabase
-    async function fetchProjects() {
-      const { data, error } = await db.from('projects').select('*').order('updated_at', { ascending: false });
-      if (!error && data) {
-        // Adaptar nombres de columna si es necesario
-        projects = data.map(p => ({
-          id: p.id,
-          title: p.title,
-          videoUrl: p.video_url || p.videoUrl || '',
-          tasks: p.tasks || []
-        }));
-        renderProjects();
-      }
+    function saveToStorage() {
+      localStorage.setItem('juls_creator_projects', JSON.stringify(projects));
+      renderProjects();
     }
-
-    // Listener para recibir actualizaciones en tiempo real
-    db.channel('public:projects')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
-        fetchProjects();
-      })
-      .subscribe();
 
     function setViewMode(mode) {
       viewMode = mode;
@@ -224,7 +193,7 @@
       document.getElementById('project-modal').classList.add('hidden');
     }
 
-    async function saveProject() {
+    function saveProject() {
       const id = document.getElementById('edit-project-id').value;
       const title = document.getElementById('project-title').value.trim();
       const videoUrl = document.getElementById('project-video-url').value.trim();
@@ -237,67 +206,57 @@
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      const projectId = id || Date.now().toString();
-
-      const processSave = async (finalVideoSrc) => {
-        let tasksPayload = [];
-        
+      const processSave = (finalVideoSrc) => {
         if (id) {
           const project = projects.find(p => p.id === id);
-          if (newTasksList.length > 0) {
-            tasksPayload = newTasksList.map(taskText => {
-              const existingTask = project && project.tasks ? project.tasks.find(t => t.text === taskText) : null;
-              return existingTask ? existingTask : { text: taskText, completed: false };
-            });
+          if (project) {
+            project.title = title;
+            if (newTasksList.length > 0) {
+              project.tasks = newTasksList.map(taskText => {
+                const existingTask = project.tasks ? project.tasks.find(t => t.text === taskText) : null;
+                return existingTask ? existingTask : { text: taskText, completed: false };
+              });
+            }
+            if (finalVideoSrc !== undefined) project.videoUrl = finalVideoSrc;
           }
         } else {
-          tasksPayload = newTasksList.length > 0 
-            ? newTasksList.map(t => ({ text: t, completed: false }))
-            : [{ text: 'Toma principal', completed: false }];
+          projects.push({
+            id: Date.now().toString(),
+            title: title,
+            videoUrl: finalVideoSrc || '',
+            tasks: newTasksList.length > 0 
+              ? newTasksList.map(t => ({ text: t, completed: false }))
+              : [{ text: 'Toma principal', completed: false }]
+          });
         }
 
-        const payload = {
-          id: projectId,
-          title: title,
-          tasks: tasksPayload,
-          updated_at: new Date()
-        };
-
-        if (finalVideoSrc !== undefined) payload.video_url = finalVideoSrc;
-
-        await db.from('projects').upsert(payload);
+        saveToStorage();
         closeModal();
-        fetchProjects();
       };
 
       if (fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
-        reader.onload = async function (e) {
-          await processSave(e.target.result);
+        reader.onload = function (e) {
+          processSave(e.target.result);
         };
         reader.readAsDataURL(fileInput.files[0]);
       } else {
-        await processSave(videoUrl || undefined);
+        processSave(videoUrl || undefined);
       }
     }
 
-    async function toggleTask(projectId, taskIndex) {
+    function toggleTask(projectId, taskIndex) {
       const project = projects.find(p => p.id === projectId);
       if (project && project.tasks && project.tasks[taskIndex]) {
         project.tasks[taskIndex].completed = !project.tasks[taskIndex].completed;
-        await db.from('projects').upsert({
-          id: project.id,
-          tasks: project.tasks,
-          updated_at: new Date()
-        });
-        fetchProjects();
+        saveToStorage();
       }
     }
 
-    async function deleteProject(id) {
+    function deleteProject(id) {
       if (confirm('¿Segura que quieres eliminar este proyecto?')) {
-        await db.from('projects').delete().eq('id', id);
-        fetchProjects();
+        projects = projects.filter(p => p.id !== id);
+        saveToStorage();
       }
     }
 
@@ -323,7 +282,7 @@
       document.getElementById('global-progress-bar').style.width = `${globalPercentage}%`;
       document.getElementById('global-subtitle').innerText = `${completedGlobalTasks} de ${totalGlobalTasks} tomas completadas`;
 
-      // 2. RENDERIZADO DE VISTA
+      // 2. RENDERIZADO DE VISTAS
       if (viewMode === 'grid') {
         container.className = "grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6";
         btnGrid.className = "p-1.5 rounded-md bg-brand-600 text-white transition";
@@ -347,7 +306,6 @@
         return;
       }
 
-      // Renderizar tarjetas compactas rectangulares
       projects.forEach(p => {
         const card = document.createElement('div');
         card.className = `bg-slate-800/90 border border-slate-700/60 rounded-2xl p-3 sm:p-4 shadow-lg transition-all`;
@@ -355,7 +313,7 @@
         const isMobile = window.innerWidth < 768;
 
         if (isMobile && p.videoUrl) {
-          // Diseño Rectangular Horizontal para Móviles cuando hay video
+          // Vista Rectangular Horizontal para Móviles
           card.innerHTML = `
             <div class="mobile-card">
               <div class="mobile-media border border-slate-800">
@@ -391,7 +349,7 @@
             </div>
           `;
         } else {
-          // Diseño estándar para PC o proyectos sin video
+          // Vista Escritorio o Proyectos sin video
           card.innerHTML = `
             <div>
               <div class="flex items-center justify-between mb-2">
@@ -433,8 +391,7 @@
       lucide.createIcons();
     }
 
-    // Inicialización
-    fetchProjects();
+    renderProjects();
     window.addEventListener('resize', renderProjects);
   </script>
 </body>
