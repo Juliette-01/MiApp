@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Creator Studio Hub - Selected Focus</title>
+  <title>Creator Studio Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -92,7 +92,7 @@
       <div id="videos-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
     </div>
 
-    <!-- VISTA SECUNDARIA: TODOS LOS PROYECTOS (SOLO CUANDO SE SELECCIONA LA PESTAÑA 'TODOS') -->
+    <!-- VISTA SECUNDARIA: TODOS LOS PROYECTOS -->
     <div id="view-all-projects" class="hidden">
       <div class="flex items-center justify-between mb-5">
         <h2 class="font-bold text-xl text-white">Todos los Proyectos</h2>
@@ -179,7 +179,6 @@
       }
     ];
 
-    // Por defecto inicia enfocado en el primer proyecto activo
     let activeTab = mainProjects.length > 0 ? mainProjects[0].id : 'all';
 
     function saveToStorage() {
@@ -287,7 +286,6 @@
 
       if (!title) return alert('Escribe un título para el video.');
 
-      // Convertir tomas ingresadas por coma a lista
       let rawTasksList = tasksText.length > 0 
         ? tasksText.split(',').map(t => t.trim()).filter(t => t.length > 0)
         : [];
@@ -383,7 +381,7 @@
     }
 
     function renderApp() {
-      // 1. Renderizar Barra de Pestañas
+      // 1. Renderizar Pestañas
       const tabsBar = document.getElementById('tabs-bar');
       tabsBar.innerHTML = '';
 
@@ -406,7 +404,7 @@
       const lblAction = document.getElementById('lbl-primary-action');
 
       if (activeTab !== 'all') {
-        // --- VISTA 1: PROYECTO SELECCIONADO (CON SUS VIDEOS Y TOMAS) ---
+        // --- VISTA 1: PROYECTO SELECCIONADO ---
         lblAction.innerText = "Agregar Video";
         projectView.classList.remove('hidden');
         allView.classList.add('hidden');
