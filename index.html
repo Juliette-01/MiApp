@@ -159,7 +159,7 @@
 
         <div>
           <label class="block text-xs text-slate-400 mb-1">Notas / Tomas adicionales (Opcional, separadas por comas)</label>
-          <textarea id="video-tasks-input" rows="2" placeholder="Déjalo vacío si no requieres notas adicionales" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
+          <textarea id="video-tasks-input" rows="2" placeholder="Déjalo completamente vacío si no requieres notas adicionales" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
         </div>
       </div>
 
@@ -277,7 +277,7 @@
           document.getElementById('video-modal-title').innerText = "Editar Video";
           document.getElementById('video-title-input').value = vid.title;
           document.getElementById('video-url-input').value = vid.videoUrl && !vid.videoUrl.startsWith('data:') ? vid.videoUrl : '';
-          const customTasks = vid.tasks ? vid.tasks.map(t => t.text).join(', ') : '';
+          const customTasks = vid.tasks ? vid.tasks.filter(t => t.text.trim() !== '').map(t => t.text).join(', ') : '';
           document.getElementById('video-tasks-input').value = customTasks;
         }
       } else {
@@ -300,8 +300,9 @@
 
       if (!title) return alert('Escribe un título para el video.');
 
+      // Filtrar y limpiar tareas vacías o basura
       let rawTasksList = tasksText.length > 0 
-        ? tasksText.split(',').map(t => t.trim()).filter(t => t.length > 0)
+        ? tasksText.split(',').map(t => t.trim()).filter(t => t.length > 0 && t.toLowerCase() !== 'ffffffffff')
         : [];
 
       const processSave = (finalSrc) => {
@@ -407,6 +408,17 @@
     }
 
     function renderApp() {
+      // Limpiar automáticamente tareas vacías o basura guardadas anteriormente
+      mainProjects.forEach(p => {
+        if (p.videos) {
+          p.videos.forEach(v => {
+            if (v.tasks) {
+              v.tasks = v.tasks.filter(t => t.text && t.text.trim() !== '' && t.text.toLowerCase() !== 'ffffffffff');
+            }
+          });
+        }
+      });
+
       // 1. Pestañas
       const tabsBar = document.getElementById('tabs-bar');
       tabsBar.innerHTML = '';
