@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Creator Studio Hub - Mobile Optimized</title>
+  <title>Creator Studio Hub - Mobile Optimized & Auto Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Cliente oficial de Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -70,6 +72,12 @@
       </div>
       
       <div class="flex items-center gap-2">
+        <!-- Indicador de Sincronización -->
+        <div id="sync-status" class="flex items-center gap-1.5 text-[10px] sm:text-xs text-emerald-400 bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-800/80">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="hidden sm:inline">Sincronizado</span>
+        </div>
+
         <div class="bg-slate-800 p-1 rounded-lg flex border border-slate-700">
           <button id="btn-grid" onclick="setViewMode('grid')" class="p-1.5 rounded-md text-slate-400 hover:text-white transition">
             <i data-lucide="layout-grid" class="w-4 h-4"></i>
@@ -144,13 +152,36 @@
   </div>
 
   <script>
-    let projects = JSON.parse(localStorage.getItem('juls_creator_projects')) || [];
+    // Configuración de Supabase conectada a tu proyecto
+    const SUPABASE_URL = "https://uxmvfntyhveyoyirmosu.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_44BcotzPRrb20v7xX4WOHg_SA0W_example"; // Reemplaza con tu llave copiada de Publishable key
+    
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let projects = [];
     let viewMode = localStorage.getItem('juls_creator_view') || 'grid';
 
-    function saveToStorage() {
-      localStorage.setItem('juls_creator_projects', JSON.stringify(projects));
-      renderProjects();
+    // Cargar datos en tiempo real desde Supabase
+    async function fetchProjects() {
+      const { data, error } = await db.from('projects').select('*').order('updated_at', { ascending: false });
+      if (!error && data) {
+        // Adaptar nombres de columna si es necesario
+        projects = data.map(p => ({
+          id: p.id,
+          title: p.title,
+          videoUrl: p.video_url || p.videoUrl || '',
+          tasks: p.tasks || []
+        }));
+        renderProjects();
+      }
     }
+
+    // Listener para recibir actualizaciones en tiempo real
+    db.channel('public:projects')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        fetchProjects();
+      })
+      .subscribe();
 
     function setViewMode(mode) {
       viewMode = mode;
@@ -193,7 +224,7 @@
       document.getElementById('project-modal').classList.add('hidden');
     }
 
-    function saveProject() {
+    async function saveProject() {
       const id = document.getElementById('edit-project-id').value;
       const title = document.getElementById('project-title').value.trim();
       const videoUrl = document.getElementById('project-video-url').value.trim();
@@ -206,57 +237,67 @@
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      const processSave = (finalVideoSrc) => {
+      const projectId = id || Date.now().toString();
+
+      const processSave = async (finalVideoSrc) => {
+        let tasksPayload = [];
+        
         if (id) {
           const project = projects.find(p => p.id === id);
-          if (project) {
-            project.title = title;
-            if (newTasksList.length > 0) {
-              project.tasks = newTasksList.map(taskText => {
-                const existingTask = project.tasks ? project.tasks.find(t => t.text === taskText) : null;
-                return existingTask ? existingTask : { text: taskText, completed: false };
-              });
-            }
-            if (finalVideoSrc !== undefined) project.videoUrl = finalVideoSrc;
+          if (newTasksList.length > 0) {
+            tasksPayload = newTasksList.map(taskText => {
+              const existingTask = project && project.tasks ? project.tasks.find(t => t.text === taskText) : null;
+              return existingTask ? existingTask : { text: taskText, completed: false };
+            });
           }
         } else {
-          projects.push({
-            id: Date.now().toString(),
-            title: title,
-            videoUrl: finalVideoSrc || '',
-            tasks: newTasksList.length > 0 
-              ? newTasksList.map(t => ({ text: t, completed: false }))
-              : [{ text: 'Toma principal', completed: false }]
-          });
+          tasksPayload = newTasksList.length > 0 
+            ? newTasksList.map(t => ({ text: t, completed: false }))
+            : [{ text: 'Toma principal', completed: false }];
         }
 
-        saveToStorage();
+        const payload = {
+          id: projectId,
+          title: title,
+          tasks: tasksPayload,
+          updated_at: new Date()
+        };
+
+        if (finalVideoSrc !== undefined) payload.video_url = finalVideoSrc;
+
+        await db.from('projects').upsert(payload);
         closeModal();
+        fetchProjects();
       };
 
       if (fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
-        reader.onload = function (e) {
-          processSave(e.target.result);
+        reader.onload = async function (e) {
+          await processSave(e.target.result);
         };
         reader.readAsDataURL(fileInput.files[0]);
       } else {
-        processSave(videoUrl || undefined);
+        await processSave(videoUrl || undefined);
       }
     }
 
-    function toggleTask(projectId, taskIndex) {
+    async function toggleTask(projectId, taskIndex) {
       const project = projects.find(p => p.id === projectId);
       if (project && project.tasks && project.tasks[taskIndex]) {
         project.tasks[taskIndex].completed = !project.tasks[taskIndex].completed;
-        saveToStorage();
+        await db.from('projects').upsert({
+          id: project.id,
+          tasks: project.tasks,
+          updated_at: new Date()
+        });
+        fetchProjects();
       }
     }
 
-    function deleteProject(id) {
+    async function deleteProject(id) {
       if (confirm('¿Segura que quieres eliminar este proyecto?')) {
-        projects = projects.filter(p => p.id !== id);
-        saveToStorage();
+        await db.from('projects').delete().eq('id', id);
+        fetchProjects();
       }
     }
 
@@ -392,7 +433,8 @@
       lucide.createIcons();
     }
 
-    renderProjects();
+    // Inicialización
+    fetchProjects();
     window.addEventListener('resize', renderProjects);
   </script>
 </body>
