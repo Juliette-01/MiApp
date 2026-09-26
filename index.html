@@ -84,7 +84,7 @@
       <div class="flex justify-between items-center mb-1.5">
         <div>
           <h2 id="progress-title" class="text-sm sm:text-base font-semibold text-white">Progreso del Proyecto</h2>
-          <p id="global-subtitle" class="text-[11px] sm:text-xs text-slate-400">0 de 0 videos completados</p>
+          <p id="global-subtitle" class="text-[11px] sm:text-xs text-slate-400">0 de 0 elementos completados</p>
         </div>
         <span id="global-percentage" class="text-lg sm:text-xl font-bold text-brand-400">0%</span>
       </div>
@@ -102,7 +102,7 @@
         </button>
       </div>
 
-      <div id="videos-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+      <div id="videos-grid"></div>
     </div>
 
     <!-- VISTA SECUNDARIA: TODOS LOS PROYECTOS -->
@@ -451,7 +451,7 @@
         let projTotal = 0;
         let projDone = 0;
         activeProj.videos.forEach(v => {
-          projTotal += 1; // Video principal cuenta como elemento
+          projTotal += 1;
           if (v.completed) projDone += 1;
           
           if (v.tasks && v.tasks.length > 0) {
@@ -471,7 +471,7 @@
         if (viewMode === 'grid') {
           vGrid.className = "grid grid-cols-1 md:grid-cols-2 gap-5";
         } else if (viewMode === 'list') {
-          vGrid.className = "flex flex-col gap-3";
+          vGrid.className = "flex flex-col gap-2.5 max-w-3xl mx-auto w-full";
         } else {
           vGrid.className = "flex flex-col gap-6 max-w-3xl mx-auto w-full";
         }
@@ -490,52 +490,78 @@
             if (v.completed === undefined) v.completed = false;
             
             const vCard = document.createElement('div');
-            vCard.className = "bg-[#172033] border border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between";
 
-            // Notas adicionales opcionales
-            const tasksHtml = (v.tasks && v.tasks.length > 0) ? `
-              <div class="space-y-2 mt-3 border-t border-slate-800/80 pt-3">
-                ${v.tasks.map((task, idx) => `
-                  <div onclick="toggleTask('${v.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group">
-                    <span class="text-xs sm:text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
-                    <div class="w-5 h-5 min-w-[20px] rounded-md border transition-all flex items-center justify-center ${task.completed ? 'bg-brand-600 border-brand-500 text-white shadow-md' : 'border-slate-600 bg-slate-900/80 group-hover:border-slate-400'}">
-                      ${task.completed ? `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
+            if (viewMode === 'list') {
+              // --- FORMATO LISTA PURO: Título y Check en una barra limpia ---
+              vCard.className = "bg-[#172033] border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3 shadow-md flex items-center justify-between gap-4 transition";
+              
+              vCard.innerHTML = `
+                <div class="flex items-center gap-3 truncate">
+                  <div onclick="toggleMainCompletion('${v.id}')" class="w-6 h-6 min-w-[24px] rounded-lg border transition-all flex items-center justify-center cursor-pointer ${v.completed ? 'bg-brand-600 border-brand-500 text-white shadow-md' : 'border-slate-600 bg-slate-900/80 hover:border-slate-400'}">
+                    ${v.completed ? `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
+                  </div>
+                  <span class="font-medium text-sm sm:text-base ${v.completed ? 'line-through text-slate-500' : 'text-white'} truncate">${v.title}</span>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  ${v.videoUrl ? `<span class="text-[10px] bg-brand-600/20 text-brand-300 px-2 py-0.5 rounded font-medium">Video</span>` : ''}
+                  <button onclick="openVideoModal('${v.id}')" title="Editar Video" class="p-1.5 text-slate-400 hover:text-white transition">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </button>
+                  <button onclick="deleteVideo('${v.id}')" title="Eliminar Video" class="p-1.5 text-slate-400 hover:text-rose-400 transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              `;
+            } else {
+              // --- FORMATO CUADRÍCULA Y PANTALLA COMPLETA ---
+              vCard.className = "bg-[#172033] border border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between";
+
+              const tasksHtml = (v.tasks && v.tasks.length > 0) ? `
+                <div class="space-y-2 mt-3 border-t border-slate-800/80 pt-3">
+                  ${v.tasks.map((task, idx) => `
+                    <div onclick="toggleTask('${v.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group">
+                      <span class="text-xs sm:text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
+                      <div class="w-5 h-5 min-w-[20px] rounded-md border transition-all flex items-center justify-center ${task.completed ? 'bg-brand-600 border-brand-500 text-white shadow-md' : 'border-slate-600 bg-slate-900/80 group-hover:border-slate-400'}">
+                        ${task.completed ? `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : '';
+
+              vCard.innerHTML = `
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg text-white truncate pr-2">${v.title}</h3>
+                    <div class="flex items-center gap-2">
+                      <button onclick="openVideoModal('${v.id}')" title="Editar Video" class="text-slate-400 hover:text-white transition">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                      </button>
+                      <button onclick="deleteVideo('${v.id}')" title="Eliminar Video" class="text-slate-400 hover:text-rose-400 transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
                     </div>
                   </div>
-                `).join('')}
-              </div>
-            ` : '';
 
-            vCard.innerHTML = `
-              <div>
-                <div class="flex items-center justify-between mb-3">
-                  <h3 class="font-bold text-lg text-white truncate pr-2">${v.title}</h3>
-                  <div class="flex items-center gap-2">
-                    <button onclick="openVideoModal('${v.id}')" title="Editar Video" class="text-slate-400 hover:text-white transition">
-                      <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="deleteVideo('${v.id}')" title="Eliminar Video" class="text-slate-400 hover:text-rose-400 transition">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                  ${v.videoUrl ? `
+                    <div class="rounded-2xl overflow-hidden bg-black mb-3 flex items-center justify-center border border-slate-900/80 shadow-inner">
+                      <video src="${v.videoUrl}" controls class="w-full ${viewMode === 'fullscreen' ? 'max-h-[500px]' : 'max-h-[280px]'} object-contain"></video>
+                    </div>
+                  ` : ''}
+
+                  <!-- Casilla de verificación general limpia -->
+                  <div onclick="toggleMainCompletion('${v.id}')" class="flex items-center justify-end p-2.5 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group mt-3">
+                    <div class="w-7 h-7 min-w-[28px] rounded-lg border transition-all flex items-center justify-center ${v.completed ? 'bg-brand-600 border-brand-500 text-white shadow-md shadow-brand-600/30' : 'border-slate-600 bg-slate-900/80 group-hover:border-slate-400'}">
+                      ${v.completed ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
+                    </div>
                   </div>
+
+                  ${tasksHtml}
                 </div>
+              `;
+            }
 
-                ${v.videoUrl ? `
-                  <div class="rounded-2xl overflow-hidden bg-black mb-3 flex items-center justify-center border border-slate-900/80 shadow-inner">
-                    <video src="${v.videoUrl}" controls class="w-full ${viewMode === 'fullscreen' ? 'max-h-[500px]' : 'max-h-[280px]'} object-contain"></video>
-                  </div>
-                ` : ''}
-
-                <!-- Casilla de verificación general siempre visible y limpia -->
-                <div onclick="toggleMainCompletion('${v.id}')" class="flex items-center justify-end p-2.5 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group mt-3">
-                  <div class="w-7 h-7 min-w-[28px] rounded-lg border transition-all flex items-center justify-center ${v.completed ? 'bg-brand-600 border-brand-500 text-white shadow-md shadow-brand-600/30' : 'border-slate-600 bg-slate-900/80 group-hover:border-slate-400'}">
-                    ${v.completed ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
-                  </div>
-                </div>
-
-                ${tasksHtml}
-              </div>
-            `;
             vGrid.appendChild(vCard);
           });
         }
