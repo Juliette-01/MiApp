@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Studio Hub - Planner & Video Checklist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .video-container {
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+        .checkbox-overlay {
+            position: absolute;
+            bottom: 0.75rem;
+            right: 0.75rem;
+            z-index: 20;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.4);
+            border-radius: 9999px;
+        }
+
+        /* Grayscale completion style */
+        .completed-card {
+            filter: grayscale(85%);
+            opacity: 0.6;
+        }
+        .completed-card:hover {
+            opacity: 0.85;
+            filter: grayscale(40%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen transition-colors duration-200">
+
+    <header class="sticky top-0 z-40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <!-- Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-brand-600 text-white rounded-xl shadow-md">
+                    <i data-lucide="video" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Creator Studio Hub</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Planificador de Video y Checklist MP4</p>
+                </div>
+            </div>
+
+            <!-- Project Selector & Quick Actions -->
+            <div class="flex items-center gap-3">
+                <!-- Select Project Dropdown -->
+                <div class="relative flex items-center">
+                    <i data-lucide="folder-kanban" class="w-4 h-4 absolute left-3 text-brand-600 dark:text-brand-400 pointer-events-none"></i>
+                    <select id="projectSelect" onchange="switchProject(this.value)" class="pl-9 pr-8 py-2 bg-gray-100 dark:bg-gray-700/60 rounded-xl text-sm font-semibold border border-transparent hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all appearance-none cursor-pointer">
+                    </select>
+                    <i data-lucide="chevron-down" class="w-4 h-4 absolute right-2.5 text-gray-400 pointer-events-none"></i>
+                </div>
+
+                <!-- New Project Button -->
+                <button onclick="openModal('newProjectModal')" class="p-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-all" title="Nuevo Proyecto">
+                    <i data-lucide="folder-plus" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Add Video Button -->
+                <button onclick="openModal('addCardModal')" class="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm rounded-xl shadow-md transition-all active:scale-95">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Subir Video</span>
+                </button>
+
+                <!-- Dark Mode Toggle -->
+                <button onclick="toggleDarkMode()" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Active Project Banner & Filters -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+                <h2 id="currentProjectTitle" class="text-2xl font-bold text-gray-900 dark:text-white">Cargando...</h2>
+                <p id="currentProjectDesc" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Organiza tus clips y lista de revisiones.</p>
+            </div>
+
+            <!-- View Layout Toggle & Filters -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Layout Toggle (Grid vs List) -->
+                <div class="flex items-center bg-gray-200 dark:bg-gray-800 p-1 rounded-xl">
+                    <button onclick="setViewMode('grid')" id="viewBtn-grid" class="p-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-700 text-brand-600 dark:text-brand-400 shadow-sm transition-all" title="Vista en Cuadrícula">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="setViewMode('list')" id="viewBtn-list" class="p-1.5 rounded-lg text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all" title="Vista en Lista">
+                        <i data-lucide="list" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="h-5 w-[1px] bg-gray-300 dark:bg-gray-700 hidden sm:block"></div>
+
+                <!-- Filter Controls -->
+                <div class="flex items-center gap-1.5">
+                    <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-sm transition-all">Todos</button>
+                    <button onclick="setFilter('pending')" id="filter-pending" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 transition-all">Pendientes</button>
+                    <button onclick="setFilter('completed')" id="filter-completed" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 transition-all">Completados</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <div class="w-full bg-gray-200 dark:bg-gray-800 h-2.5 rounded-full overflow-hidden shadow-inner">
+                <div id="progressBar" class="bg-gradient-to-r from-brand-500 to-emerald-500 h-full w-0 transition-all duration-500"></div>
+            </div>
+            <!-- Count & Percentage placed directly BELOW progress bar -->
+            <div class="flex justify-between items-center mt-2 text-xs font-bold text-gray-600 dark:text-gray-400 px-1">
+                <span id="counterText">0 / 0</span>
+                <span id="percentageText" class="text-brand-600 dark:text-brand-400 font-extrabold">0%</span>
+            </div>
+        </div>
+
+        <!-- GRID / LIST CONTAINER -->
+        <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Dynamic Video Cards loaded here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl bg-white/50 dark:bg-gray-800/50">
+            <div class="p-4 bg-brand-100 dark:bg-brand-900/30 text-brand-600 rounded-full mb-4">
+                <i data-lucide="clapperboard" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">No hay videos en este proyecto</h3>
+            <p class="text-sm text-gray-500 max-w-sm mt-1 mb-4">Sube tus archivos MP4 recortados para revisarlos y hacer el checklist.</p>
+            <button onclick="openModal('addCardModal')" class="px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-all">
+                + Cargar Video MP4
+            </button>
+        </div>
+    </main>
+
+    <!-- Modal: Add Video Content -->
+    <div id="addCardModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="file-video" class="w-5 h-5 text-brand-600"></i> Agregar Video MP4
+                </h3>
+                <button onclick="closeModal('addCardModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="addCardForm" onsubmit="handleSaveCard(event)" class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase mb-1">Título del Video / Clip</label>
+                    <input type="text" id="cardTitle" required placeholder="Ej: Clip 01 - Introducción recortada" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <!-- MP4 File Upload Area -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase mb-1">Archivo de Video (MP4)</label>
+                    <div id="dropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 text-center hover:border-brand-500 transition-colors bg-gray-50 dark:bg-gray-700/30 cursor-pointer">
+                        <input type="file" id="cardFileInput" accept="video/mp4,video/*" onchange="handleFileSelect(event)" class="hidden">
+                        <label for="cardFileInput" class="cursor-pointer flex flex-col items-center gap-2">
+                            <i data-lucide="upload-cloud" class="w-8 h-8 text-brand-500"></i>
+                            <span id="fileNameDisplay" class="text-xs text-gray-600 dark:text-gray-300 font-medium">Haz clic o arrastra un archivo MP4 aquí</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Link input -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase mb-1">O URL de Video MP4 Directo (Opcional)</label>
+                    <input type="url" id="cardVideoUrl" placeholder="https://ejemplo.com/video.mp4" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase mb-1">Notas / Checklist</label>
+                    <textarea id="cardNotes" rows="2" placeholder="Notas sobre este corte: Cortar silencio en min 0:12, ajustar color..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('addCardModal')" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md">
+                        Guardar Video
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: New Project -->
+    <div id="newProjectModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="folder-plus" class="w-5 h-5 text-brand-600"></i> Nuevo Proyecto
+                </h3>
+                <button onclick="closeModal('newProjectModal')" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="newProjectForm" onsubmit="handleSaveProject(event)" class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase mb-1">Nombre del Proyecto</label>
+                    <input type="text" id="projectTitle" required placeholder="Ej: Edición Vlog Viaje..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase mb-1">Descripción</label>
+                    <textarea id="projectDesc" rows="2" placeholder="Detalles del proyecto..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('newProjectModal')" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-md">
+                        Crear Proyecto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const defaultProjects = [
+            {
+                id: 'p1',
+                name: 'Cortes de Video Septiembre',
+                description: 'Revisión y checklist de fragmentos MP4 editados.',
+                items: [
+                    {
+                        id: 'v1',
+                        title: 'Corte 01 - Introducción',
+                        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lit-city-40026-large.mp4',
+                        notes: 'Ajustar audio y recortar final.',
+                        completed: false
+                    },
+                    {
+                        id: 'v2',
+                        title: 'Corte 02 - Demostración',
+                        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-working-on-her-laptop-41237-large.mp4',
+                        notes: 'Revisado y exportado correctamente.',
+                        completed: true
+                    },
+                    {
+                        id: 'v3',
+                        title: 'Corte 03 - Conclusión y Tomas Falsas',
+                        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-camera-zoom-in-on-a-woman-talking-on-the-41484-large.mp4',
+                        notes: 'Añadir música de fondo suave.',
+                        completed: false
+                    }
+                ]
+            }
+        ];
+
+        let projects = JSON.parse(localStorage.getItem('creator_projects_mp4')) || defaultProjects;
+        let activeProjectId = localStorage.getItem('active_project_mp4_id') || projects[0]?.id || 'p1';
+        let currentFilter = 'all';
+        let currentViewMode = 'grid'; // 'grid' or 'list'
+        let selectedFileBlobUrl = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProjectDropdown();
+            renderDashboard();
+            lucide.createIcons();
+            setupDragAndDrop();
+        });
+
+        function saveState() {
+            localStorage.setItem('creator_projects_mp4', JSON.stringify(projects));
+            localStorage.setItem('active_project_mp4_id', activeProjectId);
+        }
+
+        function getActiveProject() {
+            return projects.find(p => p.id === activeProjectId) || projects[0];
+        }
+
+        function renderProjectDropdown() {
+            const select = document.getElementById('projectSelect');
+            select.innerHTML = projects.map(p => `
+                <option value="${p.id}" ${p.id === activeProjectId ? 'selected' : ''}>${p.name}</option>
+            `).join('');
+        }
+
+        function switchProject(id) {
+            activeProjectId = id;
+            saveState();
+            renderDashboard();
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            ['all', 'pending', 'completed'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filter) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-sm transition-all";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 transition-all";
+                }
+            });
+            renderDashboard();
+        }
+
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const gridBtn = document.getElementById('viewBtn-grid');
+            const listBtn = document.getElementById('viewBtn-list');
+
+            if (mode === 'grid') {
+                gridBtn.className = "p-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-700 text-brand-600 dark:text-brand-400 shadow-sm transition-all";
+                listBtn.className = "p-1.5 rounded-lg text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all";
+            } else {
+                listBtn.className = "p-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-700 text-brand-600 dark:text-brand-400 shadow-sm transition-all";
+                gridBtn.className = "p-1.5 rounded-lg text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all";
+            }
+
+            renderDashboard();
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFileBlobUrl = URL.createObjectURL(file);
+                document.getElementById('fileNameDisplay').innerText = `Archivo cargado: ${file.name}`;
+            }
+        }
+
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            if (!dropZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => e.preventDefault(), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const file = dt.files[0];
+                if (file && file.type.startsWith('video/')) {
+                    selectedFileBlobUrl = URL.createObjectURL(file);
+                    document.getElementById('fileNameDisplay').innerText = `Archivo listo: ${file.name}`;
+                }
+            });
+        }
+
+        function renderDashboard() {
+            const project = getActiveProject();
+            if (!project) return;
+
+            document.getElementById('currentProjectTitle').innerText = project.name;
+            document.getElementById('currentProjectDesc').innerText = project.description || 'Sin descripción';
+
+            const total = project.items.length;
+            const completedCount = project.items.filter(i => i.completed).length;
+            const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+            // Updated Stats Placement (Below Progress Bar with %)
+            document.getElementById('counterText').innerText = `${completedCount} / ${total} completados`;
+            document.getElementById('percentageText').innerText = `${percentage}%`;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+
+            let filteredItems = project.items;
+            if (currentFilter === 'pending') filteredItems = project.items.filter(i => !i.completed);
+            if (currentFilter === 'completed') filteredItems = project.items.filter(i => i.completed);
+
+            const grid = document.getElementById('cardsGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredItems.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+
+                if (currentViewMode === 'grid') {
+                    // 2-Column Grid View
+                    grid.className = "grid grid-cols-1 md:grid-cols-2 gap-6";
+                    grid.innerHTML = filteredItems.map(item => `
+                        <div class="relative bg-white dark:bg-gray-800 rounded-2xl border-2 ${item.completed ? 'border-gray-400/30 completed-card' : 'border-gray-200 dark:border-gray-700'} shadow-md transition-all duration-300 overflow-hidden flex flex-col">
+                            
+                            <div class="video-container bg-black group">
+                                <video src="${item.videoUrl}" controls preload="metadata" class="w-full h-full object-cover"></video>
+
+                                ${item.completed ? `
+                                    <div class="absolute top-3 left-3 bg-gray-900/80 backdrop-blur-md text-emerald-400 text-[11px] font-bold px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1.5 shadow-lg">
+                                        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> REVISADO
+                                    </div>
+                                ` : ''}
+
+                                <!-- Checkbox in Bottom-Right -->
+                                <div class="checkbox-overlay">
+                                    <label class="cursor-pointer flex items-center justify-center p-2 rounded-xl bg-white/90 dark:bg-gray-800/90 shadow-lg border border-gray-200 dark:border-gray-600 hover:scale-110 active:scale-95 transition-all" title="Marcar como Completado">
+                                        <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleItemStatus('${item.id}')" class="sr-only peer">
+                                        <div class="w-7 h-7 rounded-lg border-2 ${item.completed ? 'bg-emerald-500 border-emerald-500' : 'border-brand-600'} flex items-center justify-center transition-all shadow-inner">
+                                            <i data-lucide="check" class="w-5 h-5 text-white ${item.completed ? 'block' : 'hidden'}"></i>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="p-4 flex-1 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-start justify-between gap-2 mb-2">
+                                        <h3 class="font-bold text-base text-gray-900 dark:text-white leading-snug ${item.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''}">
+                                            ${item.title}
+                                        </h3>
+                                        <button onclick="deleteCard('${item.id}')" class="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors" title="Eliminar">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                    ${item.notes ? `
+                                        <p class="text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700/50">
+                                            <span class="font-semibold text-brand-600 dark:text-brand-400">Notas:</span> ${item.notes}
+                                        </p>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    // List View Mode
+                    grid.className = "flex flex-col gap-4";
+                    grid.innerHTML = filteredItems.map(item => `
+                        <div class="relative bg-white dark:bg-gray-800 rounded-2xl border ${item.completed ? 'border-gray-400/30 completed-card' : 'border-gray-200 dark:border-gray-700'} shadow-sm p-3 transition-all duration-300 flex flex-col sm:flex-row items-center gap-4">
+                            
+                            <!-- Video Thumbnail / Player -->
+                            <div class="w-full sm:w-48 aspect-video bg-black rounded-xl overflow-hidden shrink-0 relative">
+                                <video src="${item.videoUrl}" controls preload="metadata" class="w-full h-full object-cover"></video>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="flex-1 w-full min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white truncate ${item.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''}">
+                                        ${item.title}
+                                    </h3>
+                                    ${item.completed ? `
+                                        <span class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full">Revisado</span>
+                                    ` : ''}
+                                </div>
+                                ${item.notes ? `
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                                        <span class="font-semibold text-brand-600 dark:text-brand-400">Notas:</span> ${item.notes}
+                                    </p>
+                                ` : '<p class="text-xs text-gray-400 italic">Sin notas requeridas</p>'}
+                            </div>
+
+                            <!-- Controls & Checkbox -->
+                            <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700">
+                                <button onclick="deleteCard('${item.id}')" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors" title="Eliminar">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                                
+                                <label class="cursor-pointer flex items-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-600">
+                                    <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleItemStatus('${item.id}')" class="sr-only">
+                                    <div class="w-6 h-6 rounded-lg border-2 ${item.completed ? 'bg-emerald-500 border-emerald-500' : 'border-brand-600'} flex items-center justify-center transition-all">
+                                        <i data-lucide="check" class="w-4 h-4 text-white ${item.completed ? 'block' : 'hidden'}"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-200 hidden sm:inline">Revisado</span>
+                                </label>
+                            </div>
+
+                        </div>
+                    `).join('');
+                }
+            }
+            lucide.createIcons();
+        }
+
+        function toggleItemStatus(itemId) {
+            const project = getActiveProject();
+            const item = project.items.find(i => i.id === itemId);
+            if (item) {
+                item.completed = !item.completed;
+                saveState();
+                renderDashboard();
+            }
+        }
+
+        function deleteCard(itemId) {
+            const project = getActiveProject();
+            project.items = project.items.filter(i => i.id !== itemId);
+            saveState();
+            renderDashboard();
+        }
+
+        function handleSaveCard(e) {
+            e.preventDefault();
+            const project = getActiveProject();
+            const title = document.getElementById('cardTitle').value;
+            const inputUrl = document.getElementById('cardVideoUrl').value;
+            const notes = document.getElementById('cardNotes').value;
+
+            const finalVideoUrl = selectedFileBlobUrl || inputUrl || 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lit-city-40026-large.mp4';
+
+            const newItem = {
+                id: 'v_' + Date.now(),
+                title,
+                videoUrl: finalVideoUrl,
+                notes,
+                completed: false
+            };
+
+            project.items.unshift(newItem);
+            saveState();
+            renderDashboard();
+            closeModal('addCardModal');
+            
+            document.getElementById('addCardForm').reset();
+            selectedFileBlobUrl = null;
+            document.getElementById('fileNameDisplay').innerText = 'Haz clic o arrastra un archivo MP4 aquí';
+        }
+
+        function handleSaveProject(e) {
+            e.preventDefault();
+            const name = document.getElementById('projectTitle').value;
+            const description = document.getElementById('projectDesc').value;
+
+            const newProject = {
+                id: 'p_' + Date.now(),
+                name,
+                description,
+                items: []
+            };
+
+            projects.push(newProject);
+            activeProjectId = newProject.id;
+            saveState();
+            renderProjectDropdown();
+            renderDashboard();
+            closeModal('newProjectModal');
+            document.getElementById('newProjectForm').reset();
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+    </script>
+</body>
+</html>
