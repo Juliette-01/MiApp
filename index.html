@@ -145,8 +145,8 @@
         </div>
 
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Tomas requeridas para este video (Separadas por comas)</label>
-          <textarea id="video-tasks-input" rows="3" placeholder="Toma principal, Ángulo cerrado, Detalle calzado" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
+          <label class="block text-xs text-slate-400 mb-1">Tomas / Especificaciones (Separadas por comas)</label>
+          <textarea id="video-tasks-input" rows="3" placeholder="Toma principal, Ángulo cerrado, Detalle calzado (Si se deja vacío, se creará una casilla general para el video)" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
         </div>
       </div>
 
@@ -161,19 +161,13 @@
     let mainProjects = JSON.parse(localStorage.getItem('juls_creator_main_projects')) || [
       {
         id: 'proj-1',
-        name: 'Campaña de Calzado',
+        name: 'Disfraz calavera',
         videos: [
           {
             id: 'v1',
-            title: 'Colocando botas',
+            title: 'Colocando zapatos',
             videoUrl: '',
-            tasks: [{ text: 'Toma principal', completed: false }]
-          },
-          {
-            id: 'v2',
-            title: 'Caminando',
-            videoUrl: '',
-            tasks: [{ text: 'Ángulo cerrado', completed: true }]
+            tasks: [{ text: 'Completado', completed: false }]
           }
         ]
       }
@@ -284,9 +278,10 @@
 
       if (!title) return alert('Escribe un título para el video.');
 
+      // Si no escribe tomas específicas, se asigna una toma por defecto para habilitar el check
       let rawTasksList = tasksText.length > 0 
         ? tasksText.split(',').map(t => t.trim()).filter(t => t.length > 0)
-        : [];
+        : ['Completado'];
 
       const processSave = (finalSrc) => {
         const proj = mainProjects.find(p => p.id === activeTab);
@@ -379,7 +374,18 @@
     }
 
     function renderApp() {
-      // 1. Pestañas
+      // Garantizar que los vídeos existentes tengan al menos una toma para el check
+      mainProjects.forEach(p => {
+        if (p.videos) {
+          p.videos.forEach(v => {
+            if (!v.tasks || !Array.isArray(v.tasks) || v.tasks.length === 0) {
+              v.tasks = [{ text: 'Completado', completed: false }];
+            }
+          });
+        }
+      });
+
+      // 1. Renderizar Pestañas
       const tabsBar = document.getElementById('tabs-bar');
       tabsBar.innerHTML = '';
 
@@ -402,7 +408,7 @@
       const lblAction = document.getElementById('lbl-primary-action');
 
       if (activeTab !== 'all') {
-        // --- VISTA DETALLE DEL PROYECTO ---
+        // --- VISTA DETALLE DEL PROYECTO SELECCIONADO ---
         lblAction.innerText = "Agregar Video";
         projectView.classList.remove('hidden');
         allView.classList.add('hidden');
@@ -445,19 +451,19 @@
             const vCard = document.createElement('div');
             vCard.className = "bg-[#172033] border border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between";
 
-            // Renderizado robusto de casillas de verificación
-            const tasksHtml = (v.tasks && v.tasks.length > 0) ? `
+            // Generar la lista de casillas de verificación
+            const tasksHtml = `
               <div class="space-y-2 mt-3 border-t border-slate-800/80 pt-3">
                 ${v.tasks.map((task, idx) => `
                   <div onclick="toggleTask('${v.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group">
                     <span class="text-xs sm:text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
-                    <div class="w-5 h-5 min-w-[20px] rounded-md border transition-colors flex items-center justify-center ${task.completed ? 'bg-brand-600 border-brand-500 text-white' : 'border-slate-600 bg-slate-900/50 group-hover:border-slate-400'}">
-                      ${task.completed ? `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
+                    <div class="w-6 h-6 min-w-[24px] rounded-lg border transition-all flex items-center justify-center ${task.completed ? 'bg-brand-600 border-brand-500 text-white' : 'border-slate-600 bg-slate-900/80 group-hover:border-slate-400'}">
+                      ${task.completed ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
                     </div>
                   </div>
                 `).join('')}
               </div>
-            ` : '';
+            `;
 
             vCard.innerHTML = `
               <div>
@@ -487,7 +493,7 @@
         }
 
       } else {
-        // --- VISTA LISTADO PROYECTOS ---
+        // --- VISTA LISTADO DE TODOS LOS PROYECTOS ---
         lblAction.innerText = "Nuevo Proyecto";
         projectView.classList.add('hidden');
         allView.classList.remove('hidden');
