@@ -67,7 +67,6 @@
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
       <h2 id="modal-title" class="text-xl font-bold mb-4 text-white">Nuevo Proyecto</h2>
       
-      <!-- Campo oculto para guardar el ID si estamos editando -->
       <input type="hidden" id="edit-project-id">
       
       <div class="space-y-4">
@@ -76,8 +75,15 @@
           <input type="text" id="project-title" placeholder="Ej. Reseña Cafetería Aesthetic" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
         </div>
 
+        <!-- Opción 1: Enlace URL del Video -->
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Cargar/Reemplazar Video MP4 (Opcional)</label>
+          <label class="block text-xs text-slate-400 mb-1">URL del Video de Referencia (MP4 / Web)</label>
+          <input type="url" id="project-video-url" placeholder="https://ejemplo.com/video.mp4" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-sm">
+        </div>
+
+        <!-- Opción 2: Archivo Local -->
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">O cargar video desde tu dispositivo (MP4)</label>
           <input type="file" id="project-video-file" accept="video/mp4,video/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-700 cursor-pointer">
         </div>
 
@@ -109,31 +115,31 @@
       renderProjects();
     }
 
-    // ABRIR MODAL (Soporta modo Crear y modo Editar)
     function openModal(projectId = null) {
       const modal = document.getElementById('project-modal');
       const title = document.getElementById('modal-title');
       const inputId = document.getElementById('edit-project-id');
       const inputTitle = document.getElementById('project-title');
+      const inputUrl = document.getElementById('project-video-url');
       const inputTasks = document.getElementById('project-tasks');
-      const videoInput = document.getElementById('project-video-file');
+      const videoInputFile = document.getElementById('project-video-file');
 
-      videoInput.value = ''; // Limpiar campo de archivo
+      videoInputFile.value = '';
 
       if (projectId) {
-        // MODO EDITAR: Cargar datos existentes
         const project = projects.find(p => p.id === projectId);
         if (project) {
           title.innerText = "Editar Proyecto";
           inputId.value = project.id;
           inputTitle.value = project.title;
+          inputUrl.value = project.videoUrl && !project.videoUrl.startsWith('data:') ? project.videoUrl : '';
           inputTasks.value = project.tasks ? project.tasks.map(t => t.text).join(', ') : '';
         }
       } else {
-        // MODO CREAR NUEVO
         title.innerText = "Nuevo Proyecto";
         inputId.value = '';
         inputTitle.value = '';
+        inputUrl.value = '';
         inputTasks.value = '';
       }
 
@@ -144,10 +150,10 @@
       document.getElementById('project-modal').classList.add('hidden');
     }
 
-    // GUARDAR CAMBIOS (Aplica modificaciones al proyecto existente o crea uno nuevo)
     function saveProject() {
       const id = document.getElementById('edit-project-id').value;
       const title = document.getElementById('project-title').value.trim();
+      const videoUrl = document.getElementById('project-video-url').value.trim();
       const tasksText = document.getElementById('project-tasks').value;
       const fileInput = document.getElementById('project-video-file');
 
@@ -157,31 +163,24 @@
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      const processSave = (videoSrc = null) => {
+      const processSave = (finalVideoSrc) => {
         if (id) {
-          // Actualizar proyecto existente
           const project = projects.find(p => p.id === id);
           if (project) {
             project.title = title;
-            
-            // Mantenemos el estado completado si la toma se mantiene, o creamos nuevas
             if (newTasksList.length > 0) {
               project.tasks = newTasksList.map(taskText => {
                 const existingTask = project.tasks ? project.tasks.find(t => t.text === taskText) : null;
                 return existingTask ? existingTask : { text: taskText, completed: false };
               });
             }
-            
-            if (videoSrc) {
-              project.videoUrl = videoSrc;
-            }
+            if (finalVideoSrc !== undefined) project.videoUrl = finalVideoSrc;
           }
         } else {
-          // Crear proyecto nuevo desde cero
           projects.push({
             id: Date.now().toString(),
             title: title,
-            videoUrl: videoSrc || '',
+            videoUrl: finalVideoSrc || '',
             tasks: newTasksList.length > 0 
               ? newTasksList.map(t => ({ text: t, completed: false }))
               : [{ text: 'Toma principal', completed: false }]
@@ -199,11 +198,10 @@
         };
         reader.readAsDataURL(fileInput.files[0]);
       } else {
-        processSave();
+        processSave(videoUrl || undefined);
       }
     }
 
-    // Marcar/Desmarcar tomas
     function toggleTask(projectId, taskIndex) {
       const project = projects.find(p => p.id === projectId);
       if (project && project.tasks[taskIndex]) {
@@ -212,7 +210,6 @@
       }
     }
 
-    // Eliminar Proyecto
     function deleteProject(id) {
       if (confirm('¿Segura que quieres eliminar este proyecto?')) {
         projects = projects.filter(p => p.id !== id);
@@ -220,7 +217,6 @@
       }
     }
 
-    // Renderizar tarjetas en pantalla
     function renderProjects() {
       const container = document.getElementById('projects-container');
       const btnGrid = document.getElementById('btn-grid');
@@ -259,39 +255,40 @@
 
         card.innerHTML = `
           <div>
+            <!-- Título del Proyecto y Botones de Acción -->
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold text-lg text-white truncate pr-2">${p.title}</h3>
               <div class="flex items-center gap-1">
-                <!-- BOTÓN EDITAR (Icono de Lápiz) -->
                 <button onclick="openModal('${p.id}')" title="Editar Proyecto" class="p-1.5 text-slate-400 hover:text-brand-400 transition">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
-                <!-- BOTÓN ELIMINAR (Icono de Basura) -->
                 <button onclick="deleteProject('${p.id}')" title="Eliminar Proyecto" class="p-1.5 text-slate-400 hover:text-rose-400 transition">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
             </div>
 
+            <!-- BARRA DE PROGRESO GLOBAL DEL PROYECTO -->
+            <div class="mb-4 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/80">
+              <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                <span class="font-medium text-slate-300">Progreso del proyecto</span>
+                <span class="font-bold text-brand-400">${progress}%</span>
+              </div>
+              <div class="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+              </div>
+            </div>
+
+            <!-- Video de referencia (Si existe) -->
             ${p.videoUrl ? `
-              <div class="rounded-xl overflow-hidden bg-black mb-4 max-h-48 flex items-center justify-center">
+              <div class="rounded-xl overflow-hidden bg-black mb-4 max-h-48 flex items-center justify-center border border-slate-800">
                 <video src="${p.videoUrl}" controls class="w-full max-h-48 object-contain"></video>
               </div>
             ` : ''}
 
-            <!-- Barra de Progreso -->
-            <div class="mb-4">
-              <div class="flex justify-between text-xs text-slate-400 mb-1">
-                <span>Progreso</span>
-                <span class="font-medium text-brand-400">${progress}%</span>
-              </div>
-              <div class="w-full bg-slate-700 rounded-full h-2">
-                <div class="bg-brand-500 h-2 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
-              </div>
-            </div>
-
-            <!-- Lista de Tomas / Checklist -->
-            <div class="space-y-2 mb-2">
+            <!-- Checklist de Tomas -->
+            <div class="space-y-2">
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tomas / Checklist</p>
               ${p.tasks ? p.tasks.map((task, idx) => `
                 <div onclick="toggleTask('${p.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/50 hover:bg-slate-900 transition cursor-pointer border border-slate-800">
                   <span class="text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
@@ -310,7 +307,6 @@
       lucide.createIcons();
     }
 
-    // Carga inicial
     renderProjects();
   </script>
 </body>
