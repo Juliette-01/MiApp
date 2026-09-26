@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Creator Studio Hub - Auto Sync</title>
+  <title>Creator Studio Hub - Planner & Video Checklist</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Supabase Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -41,14 +39,8 @@
         </h1>
       </div>
       
-      <div class="flex items-center gap-3">
-        <!-- Sync Indicator -->
-        <div id="sync-status" class="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-800">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Sincronizado</span>
-        </div>
-
-        <!-- View Toggle Buttons -->
+      <div class="flex items-center gap-2">
+        <!-- Alternar vista (Cuadrícula / Lista) -->
         <div class="bg-slate-800 p-1 rounded-lg flex border border-slate-700">
           <button id="btn-grid" onclick="setViewMode('grid')" class="p-1.5 rounded-md text-slate-400 hover:text-white transition">
             <i data-lucide="layout-grid" class="w-4 h-4"></i>
@@ -65,15 +57,17 @@
     </div>
   </header>
 
-  <!-- Main Container -->
+  <!-- Contenedor Principal de Proyectos -->
   <main class="max-w-6xl mx-auto px-4 pt-6">
     <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
   </main>
 
-  <!-- Modal Add/Edit Project -->
+  <!-- Ventana Modal (Agregar y Editar Proyecto) -->
   <div id="project-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
       <h2 id="modal-title" class="text-xl font-bold mb-4 text-white">Nuevo Proyecto</h2>
+      
+      <!-- Campo oculto para guardar el ID si estamos editando -->
       <input type="hidden" id="edit-project-id">
       
       <div class="space-y-4">
@@ -83,69 +77,60 @@
         </div>
 
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Cargar Video de Referencia (MP4 / Móvil)</label>
+          <label class="block text-xs text-slate-400 mb-1">Cargar/Reemplazar Video MP4 (Opcional)</label>
           <input type="file" id="project-video-file" accept="video/mp4,video/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-700 cursor-pointer">
         </div>
 
         <div>
           <label class="block text-xs text-slate-400 mb-1">Tomas / Checklist (Separadas por comas)</label>
-          <textarea id="project-tasks" rows="3" placeholder="Tomas del café, Fachada lugar, Outfit check, Calificación final" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-sm"></textarea>
+          <textarea id="project-tasks" rows="3" placeholder="Fachada, Pedido, Toma de café, Outfit check, Reseña final" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-sm"></textarea>
         </div>
       </div>
 
       <div class="flex justify-end gap-3 mt-6">
         <button onclick="closeModal()" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancelar</button>
-        <button onclick="saveProject()" class="px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-medium">Guardar Proyecto</button>
+        <button onclick="saveProject()" class="px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-medium">Guardar Cambios</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Configuración de Supabase (REEMPLAZA ESTOS DOS VALORES CON LOS TUYOS)
-    const SUPABASE_URL = "TU_SUPABASE_URL";
-    const SUPABASE_KEY = "TU_SUPABASE_ANON_KEY";
-    
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let projects = [];
+    let projects = JSON.parse(localStorage.getItem('juls_creator_projects')) || [];
     let viewMode = localStorage.getItem('juls_creator_view') || 'grid';
 
-    // Cargar datos en tiempo real
-    async function fetchProjects() {
-      const { data, error } = await db.from('projects').select('*').order('updated_at', { ascending: false });
-      if (!error && data) {
-        projects = data;
-        renderProjects();
-      }
-    }
-
-    // Escuchar cambios automáticos desde otros dispositivos
-    db.channel('public:projects')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, payload => {
-        fetchProjects();
-      })
-      .subscribe();
-
-    function setViewMode(mode) {
-      viewMode = mode;
-      localStorage.getItem('juls_creator_view', mode);
+    function saveToStorage() {
+      localStorage.setItem('juls_creator_projects', JSON.stringify(projects));
       renderProjects();
     }
 
+    function setViewMode(mode) {
+      viewMode = mode;
+      localStorage.setItem('juls_creator_view', mode);
+      renderProjects();
+    }
+
+    // ABRIR MODAL (Soporta modo Crear y modo Editar)
     function openModal(projectId = null) {
       const modal = document.getElementById('project-modal');
       const title = document.getElementById('modal-title');
       const inputId = document.getElementById('edit-project-id');
       const inputTitle = document.getElementById('project-title');
       const inputTasks = document.getElementById('project-tasks');
+      const videoInput = document.getElementById('project-video-file');
+
+      videoInput.value = ''; // Limpiar campo de archivo
 
       if (projectId) {
+        // MODO EDITAR: Cargar datos existentes
         const project = projects.find(p => p.id === projectId);
-        title.innerText = "Editar Proyecto";
-        inputId.value = project.id;
-        inputTitle.value = project.title;
-        inputTasks.value = project.tasks.map(t => t.text).join(', ');
+        if (project) {
+          title.innerText = "Editar Proyecto";
+          inputId.value = project.id;
+          inputTitle.value = project.title;
+          inputTasks.value = project.tasks ? project.tasks.map(t => t.text).join(', ') : '';
+        }
       } else {
+        // MODO CREAR NUEVO
         title.innerText = "Nuevo Proyecto";
         inputId.value = '';
         inputTitle.value = '';
@@ -159,67 +144,83 @@
       document.getElementById('project-modal').classList.add('hidden');
     }
 
-    async function saveProject() {
+    // GUARDAR CAMBIOS (Aplica modificaciones al proyecto existente o crea uno nuevo)
+    function saveProject() {
       const id = document.getElementById('edit-project-id').value;
       const title = document.getElementById('project-title').value.trim();
       const tasksText = document.getElementById('project-tasks').value;
       const fileInput = document.getElementById('project-video-file');
 
-      if (!title) return alert('Ingresa un título para el proyecto');
+      if (!title) return alert('Por favor escribe un título para el proyecto.');
 
-      const tasksList = tasksText.split(',')
+      const newTasksList = tasksText.split(',')
         .map(t => t.trim())
-        .filter(t => t.length > 0)
-        .map(t => ({ text: t, completed: false }));
+        .filter(t => t.length > 0);
 
-      const projectId = id || Date.now().toString();
+      const processSave = (videoSrc = null) => {
+        if (id) {
+          // Actualizar proyecto existente
+          const project = projects.find(p => p.id === id);
+          if (project) {
+            project.title = title;
+            
+            // Mantenemos el estado completado si la toma se mantiene, o creamos nuevas
+            if (newTasksList.length > 0) {
+              project.tasks = newTasksList.map(taskText => {
+                const existingTask = project.tasks ? project.tasks.find(t => t.text === taskText) : null;
+                return existingTask ? existingTask : { text: taskText, completed: false };
+              });
+            }
+            
+            if (videoSrc) {
+              project.videoUrl = videoSrc;
+            }
+          }
+        } else {
+          // Crear proyecto nuevo desde cero
+          projects.push({
+            id: Date.now().toString(),
+            title: title,
+            videoUrl: videoSrc || '',
+            tasks: newTasksList.length > 0 
+              ? newTasksList.map(t => ({ text: t, completed: false }))
+              : [{ text: 'Toma principal', completed: false }]
+          });
+        }
 
-      const handleSave = async (videoSrc = null) => {
-        const payload = {
-          id: projectId,
-          title: title,
-          tasks: tasksList.length > 0 ? tasksList : [{ text: 'Toma 1', completed: false }],
-          updated_at: new Date()
-        };
-
-        if (videoSrc) payload.video_url = videoSrc;
-
-        await db.from('projects').upsert(payload);
+        saveToStorage();
         closeModal();
-        fetchProjects();
       };
 
       if (fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
         reader.onload = function (e) {
-          handleSave(e.target.result);
+          processSave(e.target.result);
         };
         reader.readAsDataURL(fileInput.files[0]);
       } else {
-        handleSave();
+        processSave();
       }
     }
 
-    async function toggleTask(projectId, taskIndex) {
+    // Marcar/Desmarcar tomas
+    function toggleTask(projectId, taskIndex) {
       const project = projects.find(p => p.id === projectId);
-      if (project) {
+      if (project && project.tasks[taskIndex]) {
         project.tasks[taskIndex].completed = !project.tasks[taskIndex].completed;
-        await db.from('projects').upsert({
-          id: project.id,
-          tasks: project.tasks,
-          updated_at: new Date()
-        });
-        fetchProjects();
+        saveToStorage();
       }
     }
 
-    async function deleteProject(id) {
-      if (confirm('¿Eliminar este proyecto?')) {
-        await db.from('projects').delete().eq('id', id);
-        fetchProjects();
+    // Eliminar Proyecto
+    function deleteProject(id) {
+      if (confirm('¿Segura que quieres eliminar este proyecto?')) {
+        projects = projects.filter(p => p.id !== id);
+        saveToStorage();
       }
     }
 
+    // Renderizar tarjetas en pantalla
     function renderProjects() {
       const container = document.getElementById('projects-container');
       const btnGrid = document.getElementById('btn-grid');
@@ -250,31 +251,35 @@
 
       projects.forEach(p => {
         const completedCount = p.tasks ? p.tasks.filter(t => t.completed).length : 0;
-        const progress = p.tasks && p.tasks.length ? Math.round((completedCount / p.tasks.length) * 100) : 0;
+        const totalTasks = p.tasks ? p.tasks.length : 0;
+        const progress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
 
         const card = document.createElement('div');
-        card.className = `bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all ${progress === 100 ? 'opacity-60 grayscale-[40%]' : ''}`;
+        card.className = `bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all ${progress === 100 ? 'opacity-60 grayscale-[30%]' : ''}`;
 
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold text-lg text-white truncate pr-2">${p.title}</h3>
               <div class="flex items-center gap-1">
+                <!-- BOTÓN EDITAR (Icono de Lápiz) -->
                 <button onclick="openModal('${p.id}')" title="Editar Proyecto" class="p-1.5 text-slate-400 hover:text-brand-400 transition">
-                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
+                <!-- BOTÓN ELIMINAR (Icono de Basura) -->
                 <button onclick="deleteProject('${p.id}')" title="Eliminar Proyecto" class="p-1.5 text-slate-400 hover:text-rose-400 transition">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
             </div>
 
-            ${p.video_url ? `
+            ${p.videoUrl ? `
               <div class="rounded-xl overflow-hidden bg-black mb-4 max-h-48 flex items-center justify-center">
-                <video src="${p.video_url}" controls class="w-full max-h-48 object-contain"></video>
+                <video src="${p.videoUrl}" controls class="w-full max-h-48 object-contain"></video>
               </div>
             ` : ''}
 
+            <!-- Barra de Progreso -->
             <div class="mb-4">
               <div class="flex justify-between text-xs text-slate-400 mb-1">
                 <span>Progreso</span>
@@ -285,7 +290,8 @@
               </div>
             </div>
 
-            <div class="space-y-2 mb-4">
+            <!-- Lista de Tomas / Checklist -->
+            <div class="space-y-2 mb-2">
               ${p.tasks ? p.tasks.map((task, idx) => `
                 <div onclick="toggleTask('${p.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/50 hover:bg-slate-900 transition cursor-pointer border border-slate-800">
                   <span class="text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
@@ -304,8 +310,8 @@
       lucide.createIcons();
     }
 
-    // Inicializar
-    fetchProjects();
+    // Carga inicial
+    renderProjects();
   </script>
 </body>
 </html>
