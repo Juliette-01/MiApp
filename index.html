@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Creator Studio Hub - Clean Tabs</title>
+  <title>Creator Studio Hub - Selected Focus</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -31,10 +31,10 @@
   <header class="sticky top-0 z-50 backdrop-blur-md bg-[#0b101d]/90 border-b border-slate-800/80 px-4 py-3">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
       <div class="flex items-center gap-2">
-        <div class="p-1.5 sm:p-2 bg-brand-600 rounded-xl cursor-pointer" onclick="switchTab('home')">
+        <div class="p-1.5 sm:p-2 bg-brand-600 rounded-xl cursor-pointer" onclick="switchTab('all')">
           <i data-lucide="video" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
         </div>
-        <h1 onclick="switchTab('home')" class="text-lg sm:text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent truncate cursor-pointer">
+        <h1 onclick="switchTab('all')" class="text-lg sm:text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent truncate cursor-pointer">
           Creator Studio
         </h1>
       </div>
@@ -52,13 +52,13 @@
         </label>
 
         <button id="btn-primary-action" onclick="handlePrimaryAction()" class="flex items-center gap-1 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition shadow-lg shadow-brand-600/20">
-          <i data-lucide="plus" class="w-4 h-4"></i> <span id="lbl-primary-action">Nuevo Proyecto</span>
+          <i data-lucide="plus" class="w-4 h-4"></i> <span id="lbl-primary-action">Agregar Video</span>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- NAVEGACIÓN DE PESTAÑAS -->
+  <!-- BARRA DE PESTAÑAS -->
   <nav class="bg-[#111827]/80 border-b border-slate-800 px-4 py-2 overflow-x-auto">
     <div id="tabs-bar" class="max-w-6xl mx-auto flex items-center gap-2"></div>
   </nav>
@@ -66,12 +66,12 @@
   <!-- Contenedor Principal -->
   <main class="max-w-6xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6">
     
-    <!-- BARRA DE PROGRESO GENERAL -->
+    <!-- BARRA DE PROGRESO DEL PROYECTO ACTUAL -->
     <div class="mb-6 bg-[#172033] border border-slate-700/50 p-4 rounded-2xl shadow-xl">
       <div class="flex justify-between items-center mb-1.5">
         <div>
-          <h2 id="progress-title" class="text-sm sm:text-base font-semibold text-white">Progreso General</h2>
-          <p id="global-subtitle" class="text-[11px] sm:text-xs text-slate-400">0 de 0 elementos completados</p>
+          <h2 id="progress-title" class="text-sm sm:text-base font-semibold text-white">Progreso del Proyecto</h2>
+          <p id="global-subtitle" class="text-[11px] sm:text-xs text-slate-400">0 de 0 tomas completadas</p>
         </div>
         <span id="global-percentage" class="text-lg sm:text-xl font-bold text-brand-400">0%</span>
       </div>
@@ -80,19 +80,27 @@
       </div>
     </div>
 
-    <!-- VISTA PRINCIPAL (SÓLO PROYECTOS) -->
-    <div id="view-home" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5"></div>
-
-    <!-- VISTA SECUNDARIA (VIDEOS DEL PROYECTO SELECCIONADO) -->
-    <div id="view-project-details" class="hidden">
+    <!-- VISTA PRINCIPAL: VIDEOS DEL PROYECTO SELECCIONADO -->
+    <div id="view-project-details">
       <div class="flex items-center justify-between mb-5">
-        <button onclick="switchTab('home')" class="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-[#172033] px-3 py-1.5 rounded-lg border border-slate-700/50 transition">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a Proyectos
+        <h2 id="active-project-title" class="font-bold text-xl text-white"></h2>
+        <button onclick="openProjectModal(activeTab)" title="Editar Nombre del Proyecto" class="flex items-center gap-1 text-xs text-slate-400 hover:text-white bg-[#172033] px-3 py-1.5 rounded-lg border border-slate-700/50 transition">
+          <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Renombrar Proyecto
         </button>
-        <h2 id="active-project-title" class="font-bold text-lg text-white"></h2>
       </div>
 
       <div id="videos-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    </div>
+
+    <!-- VISTA SECUNDARIA: TODOS LOS PROYECTOS (SOLO CUANDO SE SELECCIONA LA PESTAÑA 'TODOS') -->
+    <div id="view-all-projects" class="hidden">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="font-bold text-xl text-white">Todos los Proyectos</h2>
+        <button onclick="openProjectModal()" class="flex items-center gap-1 text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg transition font-medium">
+          <i data-lucide="folder-plus" class="w-4 h-4"></i> Crear Nuevo Proyecto
+        </button>
+      </div>
+      <div id="all-projects-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5"></div>
     </div>
 
   </main>
@@ -113,7 +121,7 @@
     </div>
   </div>
 
-  <!-- Modal 2: Nuevo / Editar Video -->
+  <!-- Modal 2: Nuevo / Editar Video & Tomas -->
   <div id="video-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-[#172033] border border-slate-700/60 rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
       <h2 id="video-modal-title" class="text-lg font-bold mb-4 text-white">Agregar Video</h2>
@@ -137,8 +145,8 @@
         </div>
 
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Opcional: Sub-elementos / Tareas (Separadas por comas)</label>
-          <textarea id="video-tasks-input" rows="2" placeholder="Opcional: Detalle 1, Detalle 2" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
+          <label class="block text-xs text-slate-400 mb-1">Tomas requeridas para este video (Separadas por comas)</label>
+          <textarea id="video-tasks-input" rows="3" placeholder="Toma principal, Ángulo cerrado, Detalle calzado" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
         </div>
       </div>
 
@@ -159,7 +167,7 @@
             id: 'v1',
             title: 'Colocando botas',
             videoUrl: '',
-            tasks: []
+            tasks: [{ text: 'Toma principal', completed: false }]
           },
           {
             id: 'v2',
@@ -171,7 +179,8 @@
       }
     ];
 
-    let activeTab = 'home';
+    // Por defecto inicia enfocado en el primer proyecto activo
+    let activeTab = mainProjects.length > 0 ? mainProjects[0].id : 'all';
 
     function saveToStorage() {
       localStorage.setItem('juls_creator_main_projects', JSON.stringify(mainProjects));
@@ -184,7 +193,7 @@
     }
 
     function handlePrimaryAction() {
-      if (activeTab === 'home') {
+      if (activeTab === 'all') {
         openProjectModal();
       } else {
         openVideoModal(null);
@@ -234,14 +243,14 @@
 
     function deleteProjectGroup(id, e) {
       if (e) e.stopPropagation();
-      if (confirm('¿Segura que quieres eliminar este proyecto completo?')) {
+      if (confirm('¿Segura que quieres eliminar este proyecto completo y sus videos?')) {
         mainProjects = mainProjects.filter(p => p.id !== id);
-        if (activeTab === id) activeTab = 'home';
+        activeTab = mainProjects.length > 0 ? mainProjects[0].id : 'all';
         saveToStorage();
       }
     }
 
-    // Modal Videos
+    // Modal Videos y Tomas
     function openVideoModal(videoId = null) {
       document.getElementById('edit-video-id').value = videoId || '';
       document.getElementById('video-title-input').value = '';
@@ -278,6 +287,7 @@
 
       if (!title) return alert('Escribe un título para el video.');
 
+      // Convertir tomas ingresadas por coma a lista
       let rawTasksList = tasksText.length > 0 
         ? tasksText.split(',').map(t => t.trim()).filter(t => t.length > 0)
         : [];
@@ -361,7 +371,7 @@
           const imported = JSON.parse(e.target.result);
           if (Array.isArray(imported)) {
             mainProjects = imported;
-            activeTab = 'home';
+            activeTab = mainProjects.length > 0 ? mainProjects[0].id : 'all';
             saveToStorage();
             alert('¡Datos importados con éxito!');
           }
@@ -373,13 +383,9 @@
     }
 
     function renderApp() {
-      // 1. Renderizar Pestañas
+      // 1. Renderizar Barra de Pestañas
       const tabsBar = document.getElementById('tabs-bar');
-      tabsBar.innerHTML = `
-        <button onclick="switchTab('home')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${activeTab === 'home' ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20' : 'bg-[#172033] text-slate-400 hover:text-white'}">
-          🏠 Todos los Proyectos
-        </button>
-      `;
+      tabsBar.innerHTML = '';
 
       mainProjects.forEach(proj => {
         tabsBar.innerHTML += `
@@ -389,96 +395,27 @@
         `;
       });
 
-      // 2. Cálculos globales y de vista
-      let totalGlobalTasks = 0;
-      let completedGlobalTasks = 0;
+      tabsBar.innerHTML += `
+        <button onclick="switchTab('all')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${activeTab === 'all' ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20' : 'bg-[#172033] text-slate-400 hover:text-white'}">
+          🗂️ Ver Todos los Proyectos
+        </button>
+      `;
 
-      mainProjects.forEach(proj => {
-        proj.videos.forEach(v => {
-          if (v.tasks && v.tasks.length > 0) {
-            totalGlobalTasks += v.tasks.length;
-            completedGlobalTasks += v.tasks.filter(t => t.completed).length;
-          }
-        });
-      });
-
-      const homeView = document.getElementById('view-home');
-      const detailsView = document.getElementById('view-project-details');
+      const projectView = document.getElementById('view-project-details');
+      const allView = document.getElementById('view-all-projects');
       const lblAction = document.getElementById('lbl-primary-action');
 
-      if (activeTab === 'home') {
-        // --- VISTA HOME: SÓLO PROYECTOS PRINCIPALES ---
-        lblAction.innerText = "Nuevo Proyecto";
-        homeView.classList.remove('hidden');
-        detailsView.classList.add('hidden');
-
-        document.getElementById('progress-title').innerText = "Progreso General del Canal";
-        const globalPercentage = totalGlobalTasks > 0 ? Math.round((completedGlobalTasks / totalGlobalTasks) * 100) : 0;
-        document.getElementById('global-percentage').innerText = `${globalPercentage}%`;
-        document.getElementById('global-progress-bar').style.width = `${globalPercentage}%`;
-        document.getElementById('global-subtitle').innerText = `${completedGlobalTasks} de ${totalGlobalTasks} elementos completados`;
-
-        homeView.innerHTML = '';
-
-        if (mainProjects.length === 0) {
-          homeView.innerHTML = `
-            <div class="col-span-full text-center py-12 bg-[#172033]/50 border border-slate-800 rounded-2xl">
-              <i data-lucide="folder-open" class="w-10 h-10 text-slate-600 mx-auto mb-2"></i>
-              <p class="text-xs sm:text-sm text-slate-400">No tienes proyectos creados. Toca "Nuevo Proyecto".</p>
-            </div>
-          `;
-        } else {
-          mainProjects.forEach(proj => {
-            let pTotal = 0;
-            let pDone = 0;
-            proj.videos.forEach(v => {
-              if (v.tasks) {
-                pTotal += v.tasks.length;
-                pDone += v.tasks.filter(t => t.completed).length;
-              }
-            });
-            const pProg = pTotal > 0 ? Math.round((pDone / pTotal) * 100) : 0;
-
-            const card = document.createElement('div');
-            card.className = "bg-[#172033] border border-slate-700/50 hover:border-brand-500/50 rounded-2xl p-5 shadow-xl transition cursor-pointer flex flex-col justify-between";
-            card.onclick = () => switchTab(proj.id);
-
-            card.innerHTML = `
-              <div>
-                <div class="flex items-center justify-between mb-3">
-                  <div class="p-2 bg-brand-600/20 rounded-xl">
-                    <i data-lucide="folder" class="w-6 h-6 text-brand-400"></i>
-                  </div>
-                  <div class="flex items-center gap-1" onclick="event.stopPropagation()">
-                    <button onclick="openProjectModal('${proj.id}')" title="Editar Nombre" class="p-1.5 text-slate-400 hover:text-white">
-                      <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="deleteProjectGroup('${proj.id}', event)" title="Eliminar Proyecto" class="p-1.5 text-slate-400 hover:text-rose-400">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <h3 class="font-bold text-lg text-white mb-1 truncate">${proj.name}</h3>
-                <p class="text-xs text-slate-400 mb-4">${proj.videos.length} videos en este proyecto</p>
-
-                <div class="w-full bg-[#0b101d] rounded-full h-2 overflow-hidden border border-slate-800">
-                  <div class="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-2 rounded-full" style="width: ${pProg}%"></div>
-                </div>
-              </div>
-            `;
-            homeView.appendChild(card);
-          });
-        }
-
-      } else {
-        // --- VISTA DETALLE: VIDEOS DEL PROYECTO ---
+      if (activeTab !== 'all') {
+        // --- VISTA 1: PROYECTO SELECCIONADO (CON SUS VIDEOS Y TOMAS) ---
         lblAction.innerText = "Agregar Video";
-        homeView.classList.add('hidden');
-        detailsView.classList.remove('hidden');
+        projectView.classList.remove('hidden');
+        allView.classList.add('hidden');
 
         const activeProj = mainProjects.find(p => p.id === activeTab);
-        if (!activeProj) return switchTab('home');
+        if (!activeProj) {
+          if (mainProjects.length > 0) return switchTab(mainProjects[0].id);
+          else return switchTab('all');
+        }
 
         document.getElementById('active-project-title').innerText = activeProj.name;
 
@@ -492,10 +429,10 @@
         });
 
         const projProg = projTotal > 0 ? Math.round((projDone / projTotal) * 100) : 0;
-        document.getElementById('progress-title').innerText = `Proyecto: ${activeProj.name}`;
+        document.getElementById('progress-title').innerText = `Progreso: ${activeProj.name}`;
         document.getElementById('global-percentage').innerText = `${projProg}%`;
         document.getElementById('global-progress-bar').style.width = `${projProg}%`;
-        document.getElementById('global-subtitle').innerText = `${activeProj.videos.length} videos en este proyecto`;
+        document.getElementById('global-subtitle').innerText = `${projDone} de ${projTotal} tomas completadas`;
 
         const vGrid = document.getElementById('videos-grid');
         vGrid.innerHTML = '';
@@ -504,7 +441,7 @@
           vGrid.innerHTML = `
             <div class="col-span-full text-center py-12 bg-[#172033]/50 border border-slate-800 rounded-2xl">
               <i data-lucide="clapperboard" class="w-10 h-10 text-slate-600 mx-auto mb-2"></i>
-              <p class="text-xs sm:text-sm text-slate-400">No hay videos en este proyecto. Haz clic en "Agregar Video" arriba.</p>
+              <p class="text-xs sm:text-sm text-slate-400">No hay videos agregados a este proyecto. Haz clic en "Agregar Video" arriba.</p>
             </div>
           `;
         } else {
@@ -547,6 +484,84 @@
               </div>
             `;
             vGrid.appendChild(vCard);
+          });
+        }
+
+      } else {
+        // --- VISTA 2: LISTADO GENERAL DE TODOS LOS PROYECTOS ---
+        lblAction.innerText = "Nuevo Proyecto";
+        projectView.classList.add('hidden');
+        allView.classList.remove('hidden');
+
+        let totalGlobalTasks = 0;
+        let completedGlobalTasks = 0;
+
+        mainProjects.forEach(proj => {
+          proj.videos.forEach(v => {
+            if (v.tasks) {
+              totalGlobalTasks += v.tasks.length;
+              completedGlobalTasks += v.tasks.filter(t => t.completed).length;
+            }
+          });
+        });
+
+        document.getElementById('progress-title').innerText = "Progreso Global del Canal";
+        const globalPercentage = totalGlobalTasks > 0 ? Math.round((completedGlobalTasks / totalGlobalTasks) * 100) : 0;
+        document.getElementById('global-percentage').innerText = `${globalPercentage}%`;
+        document.getElementById('global-progress-bar').style.width = `${globalPercentage}%`;
+        document.getElementById('global-subtitle').innerText = `${completedGlobalTasks} de ${totalGlobalTasks} tomas completadas`;
+
+        const allGrid = document.getElementById('all-projects-grid');
+        allGrid.innerHTML = '';
+
+        if (mainProjects.length === 0) {
+          allGrid.innerHTML = `
+            <div class="col-span-full text-center py-12 bg-[#172033]/50 border border-slate-800 rounded-2xl">
+              <i data-lucide="folder-open" class="w-10 h-10 text-slate-600 mx-auto mb-2"></i>
+              <p class="text-xs sm:text-sm text-slate-400">No hay proyectos. Haz clic en "Crear Nuevo Proyecto".</p>
+            </div>
+          `;
+        } else {
+          mainProjects.forEach(proj => {
+            let pTotal = 0;
+            let pDone = 0;
+            proj.videos.forEach(v => {
+              if (v.tasks) {
+                pTotal += v.tasks.length;
+                pDone += v.tasks.filter(t => t.completed).length;
+              }
+            });
+            const pProg = pTotal > 0 ? Math.round((pDone / pTotal) * 100) : 0;
+
+            const card = document.createElement('div');
+            card.className = "bg-[#172033] border border-slate-700/50 hover:border-brand-500/50 rounded-2xl p-5 shadow-xl transition cursor-pointer flex flex-col justify-between";
+            card.onclick = () => switchTab(proj.id);
+
+            card.innerHTML = `
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <div class="p-2 bg-brand-600/20 rounded-xl">
+                    <i data-lucide="folder" class="w-6 h-6 text-brand-400"></i>
+                  </div>
+                  <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                    <button onclick="openProjectModal('${proj.id}')" title="Editar Nombre" class="p-1.5 text-slate-400 hover:text-white">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteProjectGroup('${proj.id}', event)" title="Eliminar Proyecto" class="p-1.5 text-slate-400 hover:text-rose-400">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <h3 class="font-bold text-lg text-white mb-1 truncate">${proj.name}</h3>
+                <p class="text-xs text-slate-400 mb-4">${proj.videos.length} videos en este proyecto</p>
+
+                <div class="w-full bg-[#0b101d] rounded-full h-2 overflow-hidden border border-slate-800">
+                  <div class="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-2 rounded-full" style="width: ${pProg}%"></div>
+                </div>
+              </div>
+            `;
+            allGrid.appendChild(card);
           });
         }
       }
