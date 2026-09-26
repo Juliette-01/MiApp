@@ -158,8 +158,8 @@
         </div>
 
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Notas / Tomas adicionales (Opcional, separadas por comas)</label>
-          <textarea id="video-tasks-input" rows="2" placeholder="Déjalo completamente vacío si no requieres notas adicionales" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
+          <label class="block text-xs text-slate-400 mb-1">Nota principal (Opcional)</label>
+          <input type="text" id="video-note-input" placeholder="Ej. gggggggggggg (Aparecerá junto al check)" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm">
         </div>
       </div>
 
@@ -180,8 +180,8 @@
             id: 'v1',
             title: 'Colocando zapatos',
             videoUrl: '',
-            completed: false,
-            tasks: []
+            note: '',
+            completed: false
           }
         ]
       }
@@ -267,7 +267,7 @@
       document.getElementById('edit-video-id').value = videoId || '';
       document.getElementById('video-title-input').value = '';
       document.getElementById('video-url-input').value = '';
-      document.getElementById('video-tasks-input').value = '';
+      document.getElementById('video-note-input').value = '';
       document.getElementById('video-file-input').value = '';
 
       if (videoId) {
@@ -277,8 +277,7 @@
           document.getElementById('video-modal-title').innerText = "Editar Video";
           document.getElementById('video-title-input').value = vid.title;
           document.getElementById('video-url-input').value = vid.videoUrl && !vid.videoUrl.startsWith('data:') ? vid.videoUrl : '';
-          const customTasks = vid.tasks ? vid.tasks.filter(t => t.text.trim() !== '').map(t => t.text).join(', ') : '';
-          document.getElementById('video-tasks-input').value = customTasks;
+          document.getElementById('video-note-input').value = vid.note || '';
         }
       } else {
         document.getElementById('video-modal-title').innerText = "Agregar Video al Proyecto";
@@ -295,15 +294,10 @@
       const vidId = document.getElementById('edit-video-id').value;
       const title = document.getElementById('video-title-input').value.trim();
       const videoUrl = document.getElementById('video-url-input').value.trim();
-      const tasksText = document.getElementById('video-tasks-input').value.trim();
+      const note = document.getElementById('video-note-input').value.trim();
       const fileInput = document.getElementById('video-file-input');
 
       if (!title) return alert('Escribe un título para el video.');
-
-      // Filtrar y limpiar tareas vacías o basura
-      let rawTasksList = tasksText.length > 0 
-        ? tasksText.split(',').map(t => t.trim()).filter(t => t.length > 0 && t.toLowerCase() !== 'ffffffffff')
-        : [];
 
       const processSave = (finalSrc) => {
         const proj = mainProjects.find(p => p.id === activeTab);
@@ -313,10 +307,7 @@
           const vid = proj.videos.find(v => v.id === vidId);
           if (vid) {
             vid.title = title;
-            vid.tasks = rawTasksList.map(taskText => {
-              const existing = vid.tasks ? vid.tasks.find(t => t.text === taskText) : null;
-              return existing ? existing : { text: taskText, completed: false };
-            });
+            vid.note = note;
             if (finalSrc !== undefined) vid.videoUrl = finalSrc;
           }
         } else {
@@ -324,8 +315,8 @@
             id: Date.now().toString(),
             title: title,
             videoUrl: finalSrc || '',
-            completed: false,
-            tasks: rawTasksList.map(t => ({ text: t, completed: false }))
+            note: note,
+            completed: false
           });
         }
 
@@ -350,17 +341,6 @@
         const vid = proj.videos.find(v => v.id === vidId);
         if (vid) {
           vid.completed = !vid.completed;
-          saveToStorage();
-        }
-      }
-    }
-
-    function toggleTask(vidId, taskIndex) {
-      const proj = mainProjects.find(p => p.id === activeTab);
-      if (proj) {
-        const vid = proj.videos.find(v => v.id === vidId);
-        if (vid && vid.tasks && vid.tasks[taskIndex] !== undefined) {
-          vid.tasks[taskIndex].completed = !vid.tasks[taskIndex].completed;
           saveToStorage();
         }
       }
@@ -408,12 +388,12 @@
     }
 
     function renderApp() {
-      // Limpiar automáticamente tareas vacías o basura guardadas anteriormente
+      // Migrar videos antiguos si no tienen la propiedad note
       mainProjects.forEach(p => {
         if (p.videos) {
           p.videos.forEach(v => {
-            if (v.tasks) {
-              v.tasks = v.tasks.filter(t => t.text && t.text.trim() !== '' && t.text.toLowerCase() !== 'ffffffffff');
+            if (v.note === undefined) {
+              v.note = v.tasks && v.tasks.length > 0 ? v.tasks[0].text : '';
             }
           });
         }
@@ -465,11 +445,6 @@
         activeProj.videos.forEach(v => {
           projTotal += 1;
           if (v.completed) projDone += 1;
-          
-          if (v.tasks && v.tasks.length > 0) {
-            projTotal += v.tasks.length;
-            projDone += v.tasks.filter(t => t.completed).length;
-          }
         });
 
         const projProg = projTotal > 0 ? Math.round((projDone / projTotal) * 100) : 0;
@@ -504,7 +479,7 @@
             const vCard = document.createElement('div');
 
             if (viewMode === 'list') {
-              // --- FORMATO LISTA PURO: Título y Check en una barra limpia ---
+              // --- FORMATO LISTA ---
               vCard.className = "bg-[#172033] border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3 shadow-md flex items-center justify-between gap-4 transition";
               
               vCard.innerHTML = `
@@ -516,7 +491,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
-                  ${v.videoUrl ? `<span class="text-[10px] bg-brand-600/20 text-brand-300 px-2 py-0.5 rounded font-medium">Video</span>` : ''}
+                  ${v.note ? `<span class="text-xs text-slate-400 italic max-w-[150px] truncate">${v.note}</span>` : ''}
                   <button onclick="openVideoModal('${v.id}')" title="Editar Video" class="p-1.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="pencil" class="w-4 h-4"></i>
                   </button>
@@ -528,19 +503,6 @@
             } else {
               // --- FORMATO CUADRÍCULA Y PANTALLA COMPLETA ---
               vCard.className = "bg-[#172033] border border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between";
-
-              const tasksHtml = (v.tasks && v.tasks.length > 0) ? `
-                <div class="space-y-2 mt-3 border-t border-slate-800/80 pt-3">
-                  ${v.tasks.map((task, idx) => `
-                    <div onclick="toggleTask('${v.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group">
-                      <span class="text-xs sm:text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
-                      <div class="w-5 h-5 min-w-[20px] rounded-md border transition-all flex items-center justify-center ${task.completed ? 'bg-brand-600 border-brand-500 text-white shadow-md' : 'border-slate-600 bg-slate-900/80 group-hover:border-slate-400'}">
-                        ${task.completed ? `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              ` : '';
 
               vCard.innerHTML = `
                 <div>
@@ -562,14 +524,13 @@
                     </div>
                   ` : ''}
 
-                  <!-- Casilla de verificación general limpia -->
-                  <div onclick="toggleMainCompletion('${v.id}')" class="flex items-center justify-end p-2.5 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group mt-3">
+                  <!-- Barra inferior con nota y check principal -->
+                  <div onclick="toggleMainCompletion('${v.id}')" class="flex items-center justify-between p-3 rounded-xl bg-[#0b101d]/70 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80 group mt-3">
+                    <span class="text-xs sm:text-sm ${v.completed ? 'line-through text-slate-500' : 'text-slate-300'} truncate pr-2">${v.note || ''}</span>
                     <div class="w-7 h-7 min-w-[28px] rounded-lg border transition-all flex items-center justify-center ${v.completed ? 'bg-brand-600 border-brand-500 text-white shadow-md shadow-brand-600/30' : 'border-slate-600 bg-slate-900/80 group-hover:border-slate-400'}">
                       ${v.completed ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>` : ''}
                     </div>
                   </div>
-
-                  ${tasksHtml}
                 </div>
               `;
             }
@@ -591,10 +552,6 @@
           proj.videos.forEach(v => {
             totalGlobalTasks += 1;
             if (v.completed) completedGlobalTasks += 1;
-            if (v.tasks) {
-              totalGlobalTasks += v.tasks.length;
-              completedGlobalTasks += v.tasks.filter(t => t.completed).length;
-            }
           });
         });
 
@@ -621,10 +578,6 @@
             proj.videos.forEach(v => {
               pTotal += 1;
               if (v.completed) pDone += 1;
-              if (v.tasks) {
-                pTotal += v.tasks.length;
-                pDone += v.tasks.filter(t => t.completed).length;
-              }
             });
             const pProg = pTotal > 0 ? Math.round((pDone / pTotal) * 100) : 0;
 
