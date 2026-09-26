@@ -40,13 +40,13 @@
       </div>
       
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <!-- Exportar / Importar Archivo de Respaldos -->
-        <button onclick="exportData()" title="Guardar respaldo en archivo" class="p-1.5 bg-[#171e31] hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700/60 transition flex items-center gap-1 text-xs">
+        <!-- Respaldos local -->
+        <button onclick="exportData()" title="Guardar respaldo" class="p-1.5 bg-[#171e31] hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700/60 transition flex items-center gap-1 text-xs">
           <i data-lucide="download" class="w-4 h-4 text-brand-400"></i>
           <span class="hidden md:inline">Exportar</span>
         </button>
         
-        <label title="Cargar respaldo desde archivo" class="p-1.5 bg-[#171e31] hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700/60 transition flex items-center gap-1 text-xs cursor-pointer">
+        <label title="Cargar respaldo" class="p-1.5 bg-[#171e31] hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700/60 transition flex items-center gap-1 text-xs cursor-pointer">
           <i data-lucide="upload" class="w-4 h-4 text-emerald-400"></i>
           <span class="hidden md:inline">Importar</span>
           <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
@@ -72,7 +72,7 @@
   <!-- Contenedor Principal -->
   <main class="max-w-6xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6">
     
-    <!-- BARRA DE PROGRESO GENERAL -->
+    <!-- BARRA DE PROGRESO GENERAL DE TODOS LOS PROYECTOS -->
     <div class="mb-6 bg-[#172033] border border-slate-700/50 p-4 rounded-2xl shadow-xl">
       <div class="flex justify-between items-center mb-1.5">
         <div>
@@ -86,7 +86,7 @@
       </div>
     </div>
 
-    <!-- Contenedor de Tarjetas de Proyectos -->
+    <!-- Contenedor de Proyectos -->
     <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
   </main>
 
@@ -99,7 +99,7 @@
       
       <div class="space-y-3.5">
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Nombre del Proyecto / Video</label>
+          <label class="block text-xs text-slate-400 mb-1">Nombre del Proyecto</label>
           <input type="text" id="project-title" placeholder="Ej. Colocando botas" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500">
         </div>
 
@@ -114,7 +114,7 @@
         </div>
 
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Tomas requeridas para este proyecto (Separadas por comas)</label>
+          <label class="block text-xs text-slate-400 mb-1">Tomas / Checklist del Proyecto (Separadas por comas)</label>
           <textarea id="project-tasks" rows="3" placeholder="Toma principal, Angulo cerrado, Camara lenta" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
         </div>
       </div>
@@ -213,26 +213,29 @@
       const id = document.getElementById('edit-project-id').value;
       const title = document.getElementById('project-title').value.trim();
       const videoUrl = document.getElementById('project-video-url').value.trim();
-      const tasksText = document.getElementById('project-tasks').value;
+      const tasksText = document.getElementById('project-tasks').value.trim();
       const fileInput = document.getElementById('project-video-file');
 
       if (!title) return alert('Por favor escribe un título para el proyecto.');
 
-      const newTasksList = tasksText.split(',')
-        .map(t => t.trim())
-        .filter(t => t.length > 0);
+      // Extraer tomas separadas por coma, o asignar una por defecto si está vacío
+      let newTasksList = tasksText.length > 0 
+        ? tasksText.split(',').map(t => t.trim()).filter(t => t.length > 0)
+        : [];
+
+      if (newTasksList.length === 0) {
+        newTasksList = ['Toma principal'];
+      }
 
       const processSave = (finalVideoSrc) => {
         if (id) {
           const project = projects.find(p => p.id === id);
           if (project) {
             project.title = title;
-            if (newTasksList.length > 0) {
-              project.tasks = newTasksList.map(taskText => {
-                const existingTask = project.tasks ? project.tasks.find(t => t.text === taskText) : null;
-                return existingTask ? existingTask : { text: taskText, completed: false };
-              });
-            }
+            project.tasks = newTasksList.map(taskText => {
+              const existingTask = project.tasks ? project.tasks.find(t => t.text === taskText) : null;
+              return existingTask ? existingTask : { text: taskText, completed: false };
+            });
             if (finalVideoSrc !== undefined) project.videoUrl = finalVideoSrc;
           }
         } else {
@@ -240,9 +243,7 @@
             id: Date.now().toString(),
             title: title,
             videoUrl: finalVideoSrc || '',
-            tasks: newTasksList.length > 0 
-              ? newTasksList.map(t => ({ text: t, completed: false }))
-              : [{ text: 'Toma principal', completed: false }]
+            tasks: newTasksList.map(t => ({ text: t, completed: false }))
           });
         }
 
@@ -263,7 +264,7 @@
 
     function toggleTask(projectId, taskIndex) {
       const project = projects.find(p => p.id === projectId);
-      if (project && project.tasks && project.tasks[taskIndex]) {
+      if (project && project.tasks && project.tasks[taskIndex] !== undefined) {
         project.tasks[taskIndex].completed = !project.tasks[taskIndex].completed;
         saveToStorage();
       }
@@ -281,12 +282,12 @@
       const btnGrid = document.getElementById('btn-grid');
       const btnList = document.getElementById('btn-list');
 
-      // 1. PROGRESO GLOBAL
+      // 1. CÁLCULO DE PROGRESO GENERAL
       let totalGlobalTasks = 0;
       let completedGlobalTasks = 0;
 
       projects.forEach(p => {
-        if (p.tasks) {
+        if (p.tasks && Array.isArray(p.tasks)) {
           totalGlobalTasks += p.tasks.length;
           completedGlobalTasks += p.tasks.filter(t => t.completed).length;
         }
@@ -298,7 +299,7 @@
       document.getElementById('global-progress-bar').style.width = `${globalPercentage}%`;
       document.getElementById('global-subtitle').innerText = `${completedGlobalTasks} de ${totalGlobalTasks} tomas completadas`;
 
-      // 2. CONFIGURACIÓN DE VISTAS
+      // 2. MODO DE VISTA
       if (viewMode === 'grid') {
         container.className = "grid grid-cols-1 md:grid-cols-2 gap-5";
         btnGrid.className = "p-1.5 rounded-md bg-brand-600 text-white transition";
@@ -322,14 +323,14 @@
         return;
       }
 
-      // RENDERIZADO FIEL AL DISEÑO ADJUNTADO
+      // RENDERIZADO DE TARJETAS DE PROYECTO
       projects.forEach(p => {
         const card = document.createElement('div');
         card.className = "bg-[#172033] border border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between";
 
         card.innerHTML = `
           <div>
-            <!-- Header de la tarjeta del proyecto -->
+            <!-- Título del proyecto e iconos -->
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-bold text-lg text-white truncate pr-2">${p.title}</h3>
               <div class="flex items-center gap-2">
@@ -342,25 +343,30 @@
               </div>
             </div>
 
-            <!-- Contenedor del video con dimensiones exactas -->
+            <!-- Video del proyecto -->
             ${p.videoUrl ? `
               <div class="rounded-2xl overflow-hidden bg-black mb-4 flex items-center justify-center border border-slate-900/80 shadow-inner">
                 <video src="${p.videoUrl}" controls class="w-full max-h-[300px] object-contain"></video>
               </div>
             ` : ''}
 
-            <!-- Checklist / Tomas pertenecientes a este proyecto -->
+            <!-- Lista de Tomas del Proyecto -->
             <div>
               <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">TOMAS / CHECKLIST</p>
               <div class="space-y-2">
-                ${p.tasks ? p.tasks.map((task, idx) => `
+                ${(p.tasks && p.tasks.length > 0) ? p.tasks.map((task, idx) => `
                   <div onclick="toggleTask('${p.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-xl bg-[#0b101d]/60 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80">
                     <span class="text-xs sm:text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
                     <div class="w-5 h-5 rounded-md border ${task.completed ? 'bg-brand-600 border-brand-500 flex items-center justify-center' : 'border-slate-600/80'}">
                       ${task.completed ? '<i data-lucide="check" class="w-3.5 h-3.5 text-white"></i>' : ''}
                     </div>
                   </div>
-                `).join('') : ''}
+                `).join('') : `
+                  <div onclick="toggleTask('${p.id}', 0)" class="flex items-center justify-between p-2.5 rounded-xl bg-[#0b101d]/60 transition cursor-pointer border border-slate-800/80">
+                    <span class="text-xs sm:text-sm text-slate-200">Toma principal</span>
+                    <div class="w-5 h-5 rounded-md border border-slate-600/80"></div>
+                  </div>
+                `}
               </div>
             </div>
           </div>
