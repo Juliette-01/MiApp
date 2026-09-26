@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Creator Studio Hub - Mobile Optimized</title>
+  <title>Creator Studio Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -24,41 +24,11 @@
       }
     }
   </script>
-  <style>
-    /* Estilos para el diseño rectangular compacto en celular */
-    @media (max-width: 767px) {
-      .mobile-card {
-        display: flex;
-        flex-direction: row;
-        gap: 0.75rem;
-        align-items: stretch;
-      }
-      .mobile-media {
-        width: 120px;
-        min-width: 120px;
-        height: 140px;
-        border-radius: 0.75rem;
-        overflow: hidden;
-        background: #000;
-      }
-      .mobile-media video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .mobile-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-      }
-    }
-  </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-24 font-sans antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-[#0b101d] text-slate-100 min-h-screen pb-24 font-sans antialiased selection:bg-brand-500 selection:text-white">
 
   <!-- Header -->
-  <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-900/90 border-b border-slate-800 px-4 py-3">
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-[#0b101d]/90 border-b border-slate-800/80 px-4 py-3">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
       <div class="flex items-center gap-2">
         <div class="p-1.5 sm:p-2 bg-brand-600 rounded-xl">
@@ -71,19 +41,19 @@
       
       <div class="flex items-center gap-1.5 sm:gap-2">
         <!-- Exportar / Importar Archivo de Respaldos -->
-        <button onclick="exportData()" title="Guardar respaldo en archivo" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1 text-xs">
+        <button onclick="exportData()" title="Guardar respaldo en archivo" class="p-1.5 bg-[#171e31] hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700/60 transition flex items-center gap-1 text-xs">
           <i data-lucide="download" class="w-4 h-4 text-brand-400"></i>
           <span class="hidden md:inline">Exportar</span>
         </button>
         
-        <label title="Cargar respaldo desde archivo" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1 text-xs cursor-pointer">
+        <label title="Cargar respaldo desde archivo" class="p-1.5 bg-[#171e31] hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700/60 transition flex items-center gap-1 text-xs cursor-pointer">
           <i data-lucide="upload" class="w-4 h-4 text-emerald-400"></i>
           <span class="hidden md:inline">Importar</span>
           <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
         </label>
 
         <!-- Alternar Vista -->
-        <div class="bg-slate-800 p-1 rounded-lg flex border border-slate-700">
+        <div class="bg-[#171e31] p-1 rounded-lg flex border border-slate-700/60">
           <button id="btn-grid" onclick="setViewMode('grid')" class="p-1.5 rounded-md text-slate-400 hover:text-white transition">
             <i data-lucide="layout-grid" class="w-4 h-4"></i>
           </button>
@@ -102,8 +72,8 @@
   <!-- Contenedor Principal -->
   <main class="max-w-6xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6">
     
-    <!-- BARRA DE PROGRESO GENERAL DE TODO EL ESTUDIO -->
-    <div class="mb-6 bg-slate-800/90 border border-slate-700/80 p-3.5 sm:p-4 rounded-2xl shadow-xl">
+    <!-- BARRA DE PROGRESO GENERAL -->
+    <div class="mb-6 bg-[#172033] border border-slate-700/50 p-4 rounded-2xl shadow-xl">
       <div class="flex justify-between items-center mb-1.5">
         <div>
           <h2 class="text-sm sm:text-base font-semibold text-white">Progreso General</h2>
@@ -111,31 +81,31 @@
         </div>
         <span id="global-percentage" class="text-lg sm:text-xl font-bold text-brand-400">0%</span>
       </div>
-      <div class="w-full bg-slate-900 rounded-full h-2.5 sm:h-3 overflow-hidden border border-slate-700/50">
+      <div class="w-full bg-[#0b101d] rounded-full h-2.5 sm:h-3 overflow-hidden border border-slate-700/50">
         <div id="global-progress-bar" class="bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
       </div>
     </div>
 
     <!-- Contenedor de Tarjetas de Proyectos -->
-    <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"></div>
+    <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
   </main>
 
-  <!-- Ventana Modal (Agregar / Editar) -->
+  <!-- Ventana Modal (Agregar / Editar Proyecto) -->
   <div id="project-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="bg-[#172033] border border-slate-700/60 rounded-t-2xl sm:rounded-2xl p-5 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
       <h2 id="modal-title" class="text-lg sm:text-xl font-bold mb-4 text-white">Nuevo Proyecto</h2>
       
       <input type="hidden" id="edit-project-id">
       
       <div class="space-y-3.5">
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Nombre del Video / Escena</label>
-          <input type="text" id="project-title" placeholder="Ej. Caminando / Colocando botas" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500">
+          <label class="block text-xs text-slate-400 mb-1">Nombre del Proyecto / Video</label>
+          <input type="text" id="project-title" placeholder="Ej. Colocando botas" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500">
         </div>
 
         <div>
           <label class="block text-xs text-slate-400 mb-1">URL del Video (MP4 / Web)</label>
-          <input type="url" id="project-video-url" placeholder="https://ejemplo.com/video.mp4" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm">
+          <input type="url" id="project-video-url" placeholder="https://ejemplo.com/video.mp4" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm">
         </div>
 
         <div>
@@ -144,8 +114,8 @@
         </div>
 
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Tomas / Checklist (Separadas por comas)</label>
-          <textarea id="project-tasks" rows="3" placeholder="Toma principal, Angulo cerrado, Camara lenta" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
+          <label class="block text-xs text-slate-400 mb-1">Tomas requeridas para este proyecto (Separadas por comas)</label>
+          <textarea id="project-tasks" rows="3" placeholder="Toma principal, Angulo cerrado, Camara lenta" class="w-full bg-[#0b101d] border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-xs sm:text-sm"></textarea>
         </div>
       </div>
 
@@ -171,7 +141,6 @@
       renderProjects();
     }
 
-    // EXPORTAR PROYECTOS A UN ARCHIVO ARCHIVO .JSON
     function exportData() {
       if (projects.length === 0) return alert('No tienes proyectos para exportar.');
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projects, null, 2));
@@ -183,7 +152,6 @@
       downloadAnchor.remove();
     }
 
-    // IMPORTAR PROYECTOS DESDE UN ARCHIVO .JSON
     function importData(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -248,7 +216,7 @@
       const tasksText = document.getElementById('project-tasks').value;
       const fileInput = document.getElementById('project-video-file');
 
-      if (!title) return alert('Por favor escribe un título.');
+      if (!title) return alert('Por favor escribe un título para el proyecto.');
 
       const newTasksList = tasksText.split(',')
         .map(t => t.trim())
@@ -313,7 +281,7 @@
       const btnGrid = document.getElementById('btn-grid');
       const btnList = document.getElementById('btn-list');
 
-      // 1. CÁLCULO DEL PROGRESO GLOBAL
+      // 1. PROGRESO GLOBAL
       let totalGlobalTasks = 0;
       let completedGlobalTasks = 0;
 
@@ -330,13 +298,13 @@
       document.getElementById('global-progress-bar').style.width = `${globalPercentage}%`;
       document.getElementById('global-subtitle').innerText = `${completedGlobalTasks} de ${totalGlobalTasks} tomas completadas`;
 
-      // 2. RENDERIZADO DE VISTAS
+      // 2. CONFIGURACIÓN DE VISTAS
       if (viewMode === 'grid') {
-        container.className = "grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6";
+        container.className = "grid grid-cols-1 md:grid-cols-2 gap-5";
         btnGrid.className = "p-1.5 rounded-md bg-brand-600 text-white transition";
         btnList.className = "p-1.5 rounded-md text-slate-400 hover:text-white transition";
       } else {
-        container.className = "flex flex-col gap-3";
+        container.className = "flex flex-col gap-4";
         btnGrid.className = "p-1.5 rounded-md text-slate-400 hover:text-white transition";
         btnList.className = "p-1.5 rounded-md bg-brand-600 text-white transition";
       }
@@ -345,7 +313,7 @@
 
       if (projects.length === 0) {
         container.innerHTML = `
-          <div class="col-span-full text-center py-12 bg-slate-800/40 border border-slate-800 rounded-2xl">
+          <div class="col-span-full text-center py-12 bg-[#172033]/50 border border-slate-800 rounded-2xl">
             <i data-lucide="clapperboard" class="w-10 h-10 text-slate-600 mx-auto mb-2"></i>
             <p class="text-xs sm:text-sm text-slate-400">No tienes proyectos agregados aún.</p>
           </div>
@@ -354,84 +322,49 @@
         return;
       }
 
+      // RENDERIZADO FIEL AL DISEÑO ADJUNTADO
       projects.forEach(p => {
         const card = document.createElement('div');
-        card.className = `bg-slate-800/90 border border-slate-700/60 rounded-2xl p-3 sm:p-4 shadow-lg transition-all`;
+        card.className = "bg-[#172033] border border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between";
 
-        const isMobile = window.innerWidth < 768;
-
-        if (isMobile && p.videoUrl) {
-          // Vista Rectangular Horizontal para Móviles
-          card.innerHTML = `
-            <div class="mobile-card">
-              <div class="mobile-media border border-slate-800">
-                <video src="${p.videoUrl}" controls class="w-full h-full object-cover"></video>
-              </div>
-              <div class="mobile-content">
-                <div>
-                  <div class="flex items-center justify-between mb-1.5">
-                    <h3 class="font-semibold text-sm text-white truncate pr-1">${p.title}</h3>
-                    <div class="flex items-center gap-0.5">
-                      <button onclick="openModal('${p.id}')" class="p-1 text-slate-400 hover:text-brand-400">
-                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                      </button>
-                      <button onclick="deleteProject('${p.id}')" class="p-1 text-slate-400 hover:text-rose-400">
-                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Tomas</p>
-                </div>
-
-                <div class="space-y-1.5 overflow-y-auto max-h-[85px] pr-1">
-                  ${p.tasks ? p.tasks.map((task, idx) => `
-                    <div onclick="toggleTask('${p.id}',${idx})" class="flex items-center justify-between p-1.5 rounded-md bg-slate-900/60 transition cursor-pointer border border-slate-800/80">
-                      <span class="text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'} truncate pr-1">${task.text}</span>
-                      <div class="w-4 h-4 min-w-[16px] rounded border ${task.completed ? 'bg-brand-600 border-brand-500 flex items-center justify-center' : 'border-slate-600'}">
-                        ${task.completed ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}
-                      </div>
-                    </div>
-                  `).join('') : ''}
-                </div>
+        card.innerHTML = `
+          <div>
+            <!-- Header de la tarjeta del proyecto -->
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-lg text-white truncate pr-2">${p.title}</h3>
+              <div class="flex items-center gap-2">
+                <button onclick="openModal('${p.id}')" title="Editar" class="text-slate-400 hover:text-white transition">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteProject('${p.id}')" title="Eliminar" class="text-slate-400 hover:text-rose-400 transition">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
               </div>
             </div>
-          `;
-        } else {
-          // Vista Escritorio o Proyectos sin video
-          card.innerHTML = `
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="font-semibold text-base sm:text-lg text-white truncate pr-2">${p.title}</h3>
-                <div class="flex items-center gap-1">
-                  <button onclick="openModal('${p.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-brand-400">
-                    <i data-lucide="pencil" class="w-4 h-4"></i>
-                  </button>
-                  <button onclick="deleteProject('${p.id}')" title="Eliminar" class="p-1.5 text-slate-400 hover:text-rose-400">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
-                </div>
+
+            <!-- Contenedor del video con dimensiones exactas -->
+            ${p.videoUrl ? `
+              <div class="rounded-2xl overflow-hidden bg-black mb-4 flex items-center justify-center border border-slate-900/80 shadow-inner">
+                <video src="${p.videoUrl}" controls class="w-full max-h-[300px] object-contain"></video>
               </div>
+            ` : ''}
 
-              ${p.videoUrl ? `
-                <div class="rounded-xl overflow-hidden bg-black mb-3 max-h-48 flex items-center justify-center border border-slate-800">
-                  <video src="${p.videoUrl}" controls class="w-full max-h-48 object-contain"></video>
-                </div>
-              ` : ''}
-
-              <div class="space-y-1.5">
-                <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Tomas / Checklist</p>
+            <!-- Checklist / Tomas pertenecientes a este proyecto -->
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">TOMAS / CHECKLIST</p>
+              <div class="space-y-2">
                 ${p.tasks ? p.tasks.map((task, idx) => `
-                  <div onclick="toggleTask('${p.id}',${idx})" class="flex items-center justify-between p-2 rounded-lg bg-slate-900/50 hover:bg-slate-900 transition cursor-pointer border border-slate-800">
+                  <div onclick="toggleTask('${p.id}',${idx})" class="flex items-center justify-between p-2.5 rounded-xl bg-[#0b101d]/60 hover:bg-[#0b101d] transition cursor-pointer border border-slate-800/80">
                     <span class="text-xs sm:text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}">${task.text}</span>
-                    <div class="w-4 h-4 sm:w-5 sm:h-5 rounded border ${task.completed ? 'bg-brand-600 border-brand-500 flex items-center justify-center' : 'border-slate-600'}">
-                      ${task.completed ? '<i data-lucide="check" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white"></i>' : ''}
+                    <div class="w-5 h-5 rounded-md border ${task.completed ? 'bg-brand-600 border-brand-500 flex items-center justify-center' : 'border-slate-600/80'}">
+                      ${task.completed ? '<i data-lucide="check" class="w-3.5 h-3.5 text-white"></i>' : ''}
                     </div>
                   </div>
                 `).join('') : ''}
               </div>
             </div>
-          `;
-        }
+          </div>
+        `;
 
         container.appendChild(card);
       });
@@ -440,7 +373,6 @@
     }
 
     renderProjects();
-    window.addEventListener('resize', renderProjects);
   </script>
 </body>
 </html>
