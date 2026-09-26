@@ -57,12 +57,28 @@
     </div>
   </header>
 
-  <!-- Contenedor Principal de Proyectos -->
+  <!-- Contenedor Principal -->
   <main class="max-w-6xl mx-auto px-4 pt-6">
+    
+    <!-- BARRA DE PROGRESO GENERAL DE TODO EL ESTUDIO -->
+    <div class="mb-8 bg-slate-800/90 border border-slate-700/80 p-4 rounded-2xl shadow-xl">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <h2 class="text-base font-semibold text-white">Progreso General del Canal / Sesión</h2>
+          <p id="global-subtitle" class="text-xs text-slate-400">0 de 0 tomas completadas en total</p>
+        </div>
+        <span id="global-percentage" class="text-xl font-bold text-brand-400">0%</span>
+      </div>
+      <div class="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700/50">
+        <div id="global-progress-bar" class="bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Contenedor de Tarjetas de Videos -->
     <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
   </main>
 
-  <!-- Ventana Modal (Agregar y Editar Proyecto) -->
+  <!-- Ventana Modal (Agregar y Editar) -->
   <div id="project-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
       <h2 id="modal-title" class="text-xl font-bold mb-4 text-white">Nuevo Proyecto</h2>
@@ -71,17 +87,15 @@
       
       <div class="space-y-4">
         <div>
-          <label class="block text-xs text-slate-400 mb-1">Nombre del Proyecto</label>
-          <input type="text" id="project-title" placeholder="Ej. Reseña Cafetería Aesthetic" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+          <label class="block text-xs text-slate-400 mb-1">Nombre del Video / Escena</label>
+          <input type="text" id="project-title" placeholder="Ej. Caminando / Colocando botas" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
         </div>
 
-        <!-- Opción 1: Enlace URL del Video -->
         <div>
           <label class="block text-xs text-slate-400 mb-1">URL del Video de Referencia (MP4 / Web)</label>
           <input type="url" id="project-video-url" placeholder="https://ejemplo.com/video.mp4" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-sm">
         </div>
 
-        <!-- Opción 2: Archivo Local -->
         <div>
           <label class="block text-xs text-slate-400 mb-1">O cargar video desde tu dispositivo (MP4)</label>
           <input type="file" id="project-video-file" accept="video/mp4,video/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-700 cursor-pointer">
@@ -89,7 +103,7 @@
 
         <div>
           <label class="block text-xs text-slate-400 mb-1">Tomas / Checklist (Separadas por comas)</label>
-          <textarea id="project-tasks" rows="3" placeholder="Fachada, Pedido, Toma de café, Outfit check, Reseña final" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-sm"></textarea>
+          <textarea id="project-tasks" rows="3" placeholder="Toma principal, Angulo cerrado, Camara lenta" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 text-sm"></textarea>
         </div>
       </div>
 
@@ -157,7 +171,7 @@
       const tasksText = document.getElementById('project-tasks').value;
       const fileInput = document.getElementById('project-video-file');
 
-      if (!title) return alert('Por favor escribe un título para el proyecto.');
+      if (!title) return alert('Por favor escribe un título.');
 
       const newTasksList = tasksText.split(',')
         .map(t => t.trim())
@@ -202,12 +216,11 @@
       }
     }
 
-    // ALTERNAR TAREA Y RECALCULAR PROGRESO AL INSTANTE
     function toggleTask(projectId, taskIndex) {
       const project = projects.find(p => p.id === projectId);
       if (project && project.tasks && project.tasks[taskIndex]) {
         project.tasks[taskIndex].completed = !project.tasks[taskIndex].completed;
-        saveToStorage(); // Guarda los datos y manda a renderizar la vista completa
+        saveToStorage();
       }
     }
 
@@ -223,6 +236,25 @@
       const btnGrid = document.getElementById('btn-grid');
       const btnList = document.getElementById('btn-list');
 
+      // 1. CÁLCULO DEL PROGRESO GLOBAL TOTAL
+      let totalGlobalTasks = 0;
+      let completedGlobalTasks = 0;
+
+      projects.forEach(p => {
+        if (p.tasks) {
+          totalGlobalTasks += p.tasks.length;
+          completedGlobalTasks += p.tasks.filter(t => t.completed).length;
+        }
+      });
+
+      const globalPercentage = totalGlobalTasks > 0 ? Math.round((completedGlobalTasks / totalGlobalTasks) * 100) : 0;
+
+      // Actualizar la barra superior general
+      document.getElementById('global-percentage').innerText = `${globalPercentage}%`;
+      document.getElementById('global-progress-bar').style.width = `${globalPercentage}%`;
+      document.getElementById('global-subtitle').innerText = `${completedGlobalTasks} de ${totalGlobalTasks} tomas completadas en total`;
+
+      // 2. RENDERIZADO DE VISTA
       if (viewMode === 'grid') {
         container.className = "grid grid-cols-1 md:grid-cols-2 gap-6";
         btnGrid.className = "p-1.5 rounded-md bg-brand-600 text-white transition";
@@ -246,42 +278,27 @@
         return;
       }
 
+      // Renderizar cada tarjeta sin barra individual
       projects.forEach(p => {
-        // Cálculo del progreso general por proyecto
-        const totalTasks = p.tasks ? p.tasks.length : 0;
-        const completedTasks = p.tasks ? p.tasks.filter(t => t.completed).length : 0;
-        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
         const card = document.createElement('div');
-        card.className = `bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all ${progressPercentage === 100 ? 'border-brand-500/50' : ''}`;
+        card.className = `bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all`;
 
         card.innerHTML = `
           <div>
-            <!-- Título del Proyecto y Botones de Acción -->
+            <!-- Título y Botones -->
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold text-lg text-white truncate pr-2">${p.title}</h3>
               <div class="flex items-center gap-1">
-                <button onclick="openModal('${p.id}')" title="Editar Proyecto" class="p-1.5 text-slate-400 hover:text-brand-400 transition">
+                <button onclick="openModal('${p.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-brand-400 transition">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
-                <button onclick="deleteProject('${p.id}')" title="Eliminar Proyecto" class="p-1.5 text-slate-400 hover:text-rose-400 transition">
+                <button onclick="deleteProject('${p.id}')" title="Eliminar" class="p-1.5 text-slate-400 hover:text-rose-400 transition">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
             </div>
 
-            <!-- BARRA DE PROGRESO GLOBAL DEL PROYECTO -->
-            <div class="mb-4 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
-              <div class="flex justify-between text-xs text-slate-400 mb-1.5">
-                <span class="font-medium text-slate-300">Progreso del proyecto (${completedTasks}/${totalTasks})</span>
-                <span class="font-bold text-brand-400">${progressPercentage}%</span>
-              </div>
-              <div class="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                <div class="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-2.5 rounded-full transition-all duration-300" style="width: ${progressPercentage}%"></div>
-              </div>
-            </div>
-
-            <!-- Video de referencia (Si existe) -->
+            <!-- Video de referencia -->
             ${p.videoUrl ? `
               <div class="rounded-xl overflow-hidden bg-black mb-4 max-h-48 flex items-center justify-center border border-slate-800">
                 <video src="${p.videoUrl}" controls class="w-full max-h-48 object-contain"></video>
