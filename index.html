@@ -202,11 +202,12 @@
       }
     }
 
+    // ALTERNAR TAREA Y RECALCULAR PROGRESO AL INSTANTE
     function toggleTask(projectId, taskIndex) {
       const project = projects.find(p => p.id === projectId);
-      if (project && project.tasks[taskIndex]) {
+      if (project && project.tasks && project.tasks[taskIndex]) {
         project.tasks[taskIndex].completed = !project.tasks[taskIndex].completed;
-        saveToStorage();
+        saveToStorage(); // Guarda los datos y manda a renderizar la vista completa
       }
     }
 
@@ -246,12 +247,13 @@
       }
 
       projects.forEach(p => {
-        const completedCount = p.tasks ? p.tasks.filter(t => t.completed).length : 0;
+        // Cálculo del progreso general por proyecto
         const totalTasks = p.tasks ? p.tasks.length : 0;
-        const progress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+        const completedTasks = p.tasks ? p.tasks.filter(t => t.completed).length : 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
         const card = document.createElement('div');
-        card.className = `bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all ${progress === 100 ? 'opacity-60 grayscale-[30%]' : ''}`;
+        card.className = `bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition-all ${progressPercentage === 100 ? 'border-brand-500/50' : ''}`;
 
         card.innerHTML = `
           <div>
@@ -269,13 +271,13 @@
             </div>
 
             <!-- BARRA DE PROGRESO GLOBAL DEL PROYECTO -->
-            <div class="mb-4 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/80">
+            <div class="mb-4 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
               <div class="flex justify-between text-xs text-slate-400 mb-1.5">
-                <span class="font-medium text-slate-300">Progreso del proyecto</span>
-                <span class="font-bold text-brand-400">${progress}%</span>
+                <span class="font-medium text-slate-300">Progreso del proyecto (${completedTasks}/${totalTasks})</span>
+                <span class="font-bold text-brand-400">${progressPercentage}%</span>
               </div>
               <div class="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                <div class="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                <div class="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-2.5 rounded-full transition-all duration-300" style="width: ${progressPercentage}%"></div>
               </div>
             </div>
 
